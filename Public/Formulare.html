@@ -16,6 +16,37 @@
         align-items: center;
       "
     >
+    <div style="display: flex; align-items: center; gap: 10px;">
+  <span>Angemeldet als: <strong id="currentUser"></strong></span>
+  <button onclick="logout()" style="background-color: #f44336; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;">
+    Abmelden
+  </button>
+</div>
+
+<script>
+  // Prüfe ob Benutzer angemeldet ist
+  fetch('/check-auth')
+    .then(response => response.json())
+    .then(data => {
+      if (!data.authenticated) {
+        window.location.href = '/login.html';
+      } else {
+        document.getElementById('currentUser').textContent = data.user.role;
+      }
+    })
+    .catch(error => {
+      console.error('Auth check failed:', error);
+      window.location.href = '/login.html';
+    });
+</script>
+<script>
+
+  document.getElementById('currentUser').textContent = '<%= session.user.role %>';
+  function logout() {
+    fetch('/logout')
+      .then(() => window.location.href = '/login.html');
+  }
+</script>
       <img
         alt="HTWK Logo"
         src="https://upload.wikimedia.org/wikipedia/de/1/16/HTWK-Logo.svg"

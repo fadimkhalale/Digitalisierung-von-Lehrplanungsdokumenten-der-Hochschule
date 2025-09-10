@@ -1,6 +1,7 @@
 // server.js — komplette Datei
 // Starten mit: node server.js
 const express = require('express');
+const session = require('express-session');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -9,15 +10,48 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 
-app.use(express.static('public'));
-app.use(express.json());
+// Konfiguration aus externer Datei laden
+let config = {};
+try {
+  config = require('./config.json');
+} catch (error) {
+  console.error('Konfigurationsdatei config.json nicht gefunden oder ungültig');
+  process.exit(1);
+}
+
+// Benutzerdaten aus Konfiguration
+const users = config.users || [];
 
 // Middlewares
 app.use(express.static('public'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(session({
+  secret: config.sessionSecret || 'geheimes_session_secret_ändern_in_produktion',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 } // 24 Stunden
+}));
+
+// Middleware zur Überprüfung der Authentifizierung
+function requireAuth(req, res, next) {
+  if (!req.session.user) {
+    if (req.accepts('html')) {
+      return res.redirect('/login.html');
+    } else {
+      return res.status(401).json({ error: 'Nicht autorisiert' });
+    }
+  }
+  next();
+}
+
+// GET / - Root-Route zur Login-Umleitung
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
 
 // GET /list - Gibt die Liste der PDFs aus dem Downloads-Ordner zurück
-app.get('/list', (req, res) => {
+app.get('/list', requireAuth, (req, res) => {
   const downloadsPath = path.join(require('os').homedir(), 'Downloads');
   
   fs.readdir(downloadsPath, (err, files) => {
@@ -52,7 +86,7 @@ app.get('/list', (req, res) => {
 });
 
 // GET /view - Zeigt eine PDF-Datei an
-app.get('/view', (req, res) => {
+app.get('/view', requireAuth, (req, res) => {
   const filePath = req.query.path;
   
   if (!filePath) {
@@ -71,7 +105,7 @@ app.get('/view', (req, res) => {
 });
 
 // POST /rename - Benennt eine Datei um
-app.post('/rename', (req, res) => {
+app.post('/rename', requireAuth, (req, res) => {
   const { oldPath, newName } = req.body;
   
   if (!oldPath || !newName) {
@@ -98,7 +132,7 @@ app.post('/rename', (req, res) => {
 });
 
 // POST /delete - Löscht eine PDF-Datei
-app.post('/delete', (req, res) => {
+app.post('/delete', requireAuth, (req, res) => {
   const { path: filePath } = req.body;
   
   if (!filePath) {
@@ -121,6 +155,46 @@ app.post('/delete', (req, res) => {
   }
 });
 
+// Login-Route
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if (user) {
+    req.session.user = user;
+    res.redirect('/formulare.html');
+  } else {
+    res.redirect('/login.html?error=1');
+  }
+});
+
+// Logout-Route
+app.get('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).send('Fehler beim Abmelden');
+    }
+    res.redirect('/login.html?loggedout=1');
+  });
+});
+
+// Auth-Check Route
+app.get('/check-auth', (req, res) => {
+  if (req.session.user) {
+    res.json({ authenticated: true, user: req.session.user });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+// Geschützte Routen
+app.get('/formulare.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'formulare.html'));
+});
+
+app.get('/pdf-manager.html', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pdf-manager.html'));
+});
 
 /**
  * Split a TTL file string into "documents" that start at lines with "@prefix ... ex:"
@@ -185,8 +259,6 @@ function extractEntriesFromDoc(doc) {
   return blocks;
 }
 
-
-
 // ---------------- rdfs endpoints ----------------
 
 /**
@@ -196,7 +268,7 @@ function extractEntriesFromDoc(doc) {
  * - extracts entries per document
  * - returns items with file set to "<filename>::<docIndex>" so the client can request a specific doc
  */
-app.get('/rdfs/list', (req, res) => {
+app.get('/rdfs/list', requireAuth, (req, res) => {
   const type = req.query.type || 'all';
   const map = { dozent: 'dozentenblatt.ttl', zuarbeit: 'zuarbeitsblatt.ttl' };
   const filesToRead = (type === 'all') ? Object.values(map) : (map[type] ? [map[type]] : []);
@@ -230,7 +302,7 @@ app.get('/rdfs/list', (req, res) => {
  * - otherwise find the document that contains the requested id and return exactly that document
  * The returned text starts with the @prefix ex: line and contains only the single document.
  */
-app.get('/rdfs/get', (req, res) => {
+app.get('/rdfs/get', requireAuth, (req, res) => {
   const { file, id } = req.query;
   if (!file || !id) return res.status(400).send('file und id erforderlich');
 
