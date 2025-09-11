@@ -2,18 +2,18 @@
   "users": [
     {
       "username": "studiendekan",
-      "password": "studiendekan123", 
-      "role": "Studiendekan"
+      "role": "Studiendekan",
+      "passwordHash": "$2b$12$KkuCzW109qNtWvG9pILMbunuTa6NAZZtoO0.bzp3UtdmTVEu7C.jW"
     },
     {
       "username": "studienamt",
-      "password": "studienamt123",
-      "role": "Studienamt"
+      "role": "Studienamt",
+      "passwordHash": "$2b$12$XRP8T84SQcba31hzU791TuayN6yF7x88XQl2PbGF8xjnX8BJOTwee"
     },
     {
       "username": "dekan",
-      "password": "dekan123",
-      "role": "Dekan"
+      "role": "Dekan",
+      "passwordHash": "$2b$12$4lCc7IuqtBQ9g3VmM2qiJ.v51U5UzUpveEGi0zoZtlDzPrpzsRCu."
     }
   ]
 }
