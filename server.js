@@ -1,4 +1,3 @@
-
 // server.js — erweitert: sicheres Login mit Hashing (automatisch, Backups, keine Löschung)
 // Starten mit: node server.js
 // Hinweis: Dieses Script erweitert dein bestehendes server.js Verhalten.
@@ -97,52 +96,6 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// The functions for TTL/RDFS handling (kept from original implementation)
-function splitDocsByPrefixEx(ttl) {
-  const prefixRe = /^\\s*@prefix\\s+ex:/gm;
-  const positions = [];
-  let m;
-  while ((m = prefixRe.exec(ttl)) !== null) positions.push(m.index);
-  if (positions.length === 0) return [ttl.trim()];
-  const docs = [];
-  for (let i = 0; i < positions.length; i++) {
-    const start = positions[i];
-    const end = (i + 1 < positions.length) ? positions[i + 1] : ttl.length;
-    docs.push(ttl.slice(start, end).trim());
-  }
-  return docs;
-}
-
-function extractEntriesFromDoc(doc) {
-  const blocks = [];
-  const prefixRegex = /@prefix ex:/g;
-  let prefixMatches = [...doc.matchAll(prefixRegex)];
-
-  if (prefixMatches.length === 0) {
-    return [{ id: 'default', name: 'default', block: doc, displayName: 'default' }];
-  }
-
-  for (let i = 0; i < prefixMatches.length; i++) {
-    const start = prefixMatches[i].index;
-    const end = (i + 1 < prefixMatches.length) ? prefixMatches[i + 1].index : doc.length;
-    const block = doc.slice(start, end).trim();
-
-    const idMatch = block.match(/ex:([A-Za-z0-9_\\-]+)/);
-    const id = idMatch ? idMatch[1] : `block_${i}`;
-
-    const mNach = block.match(/ex:nachname\\s+"([^"]+)"/);
-    const mMod = block.match(/ex:modulname\\s+"([^"]+)"/);
-
-    let displayName;
-    if (mNach) displayName = `${id} ${mNach[1]}`;
-    else if (mMod) displayName = `${id} ${mMod[1]}`;
-    else displayName = id;
-
-    blocks.push({ id, name: displayName, block, displayName });
-  }
-  return blocks;
-}
-
 // Main init: ensure config hashed, then register routes that depend on config/session
 async function init() {
   try {
@@ -197,8 +150,8 @@ async function init() {
           .filter(name => name.endsWith('.pdf'))
           .map(name => {
             const stat = fs.statSync(path.join(downloadsPath, name));
-            const dozentenMatch = name.match(/Dozentenblatt_(.+)_(Wintersemester|Sommersemester)\\d{4}/i);
-            const zuarbeitMatch = name.match(/Zuarbeitsblatt_(.+)_(Wintersemester|Sommersemester)\\d{4}/i);
+            const dozentenMatch = name.match(/Dozentenblatt_(.+)_(Wintersemester|Sommersemester)\d{4}/i);
+            const zuarbeitMatch = name.match(/Zuarbeitsblatt_(.+)_(Wintersemester|Sommersemester)\d{4}/i);
             
             let dozent = '', semester = '';
             if (dozentenMatch) {
@@ -364,10 +317,10 @@ async function init() {
       res.sendFile(path.join(__dirname, 'public', 'pdf-manager.html'));
     });
 
-    // rdfs endpoints (kept from original)
-    app.get('/rdfs/list', requireAuth, (req, res) => {
+    // JSON endpoints (replacing RDFS endpoints)
+    app.get('/json/list', requireAuth, (req, res) => {
       const type = req.query.type || 'all';
-      const map = { dozent: 'dozentenblatt.ttl', zuarbeit: 'zuarbeitsblatt.ttl' };
+      const map = { dozent: 'dozentenblatt.json', zuarbeit: 'zuarbeitsblatt.json' };
       const filesToRead = (type === 'all') ? Object.values(map) : (map[type] ? [map[type]] : []);
       const results = [];
 
@@ -375,15 +328,28 @@ async function init() {
         const full = path.join(DATA_DIR, filename);
         if (!fs.existsSync(full)) return;
         try {
-          const ttl = fs.readFileSync(full, 'utf8');
-          const docs = splitDocsByPrefixEx(ttl); // array of document strings
-          docs.forEach((doc, docIndex) => {
-            const entries = extractEntriesFromDoc(doc, filename);
-            const typeKey = filename.toLowerCase().includes('dozenten') ? 'dozent' : 'zuarbeit';
-            entries.forEach(e => {
-              results.push({ id: e.id, name: e.name, file: `${filename}::${docIndex}`, type: typeKey });
+          const jsonData = JSON.parse(fs.readFileSync(full, 'utf8'));
+          
+          // Handle different JSON structures
+          if (filename === 'dozentenblatt.json' && jsonData.dozenten) {
+            jsonData.dozenten.forEach(dozent => {
+              results.push({
+                id: dozent.id || dozent.nachname,
+                name: `${dozent.titel || ''} ${dozent.vorname || ''} ${dozent.nachname || ''}`.trim(),
+                file: filename,
+                type: 'dozent'
+              });
             });
-          });
+          } else if (filename === 'zuarbeitsblatt.json' && jsonData.module) {
+            jsonData.module.forEach(modul => {
+              results.push({
+                id: modul.id || modul.modulnr,
+                name: `${modul.modulnr || ''} ${modul.modulname || ''}`.trim(),
+                file: filename,
+                type: 'zuarbeit'
+              });
+            });
+          }
         } catch (err) {
           console.error(`Fehler beim Lesen von ${filename}:`, err.message);
         }
@@ -392,58 +358,29 @@ async function init() {
       res.json(results);
     });
 
-    app.get('/rdfs/get', requireAuth, (req, res) => {
+    app.get('/json/get', requireAuth, (req, res) => {
       const { file, id } = req.query;
       if (!file || !id) return res.status(400).send('file und id erforderlich');
 
-      const safeFile = path.basename(file.split('::')[0]);
-      const docIndexPart = (file.includes('::')) ? Number(file.split('::')[1]) : null;
+      const safeFile = path.basename(file);
       const fullPath = path.join(DATA_DIR, safeFile);
       if (!fs.existsSync(fullPath)) return res.status(404).send('Datei nicht gefunden');
 
       try {
-        const ttl = fs.readFileSync(fullPath, 'utf8');
-
-        const prefixRe = /^\\s*@prefix\\s+ex:/gm;
-        const prefixPositions = [];
-        let pm;
-        while ((pm = prefixRe.exec(ttl)) !== null) prefixPositions.push(pm.index);
-
-        if (docIndexPart !== null && Number.isInteger(docIndexPart)) {
-          if (prefixPositions.length === 0) {
-            return res.type('text/plain').send(ttl.trim() + '\\n');
-          }
-          if (docIndexPart < 0 || docIndexPart >= prefixPositions.length) {
-            return res.status(404).send('Dokumentindex nicht vorhanden');
-          }
-          const start = prefixPositions[docIndexPart];
-          const end = (docIndexPart + 1 < prefixPositions.length) ? prefixPositions[docIndexPart + 1] : ttl.length;
-          const docText = ttl.slice(start, end).trim();
-          return res.type('text/plain').send(docText + '\\n');
+        const jsonData = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+        
+        let result = null;
+        if (safeFile === 'dozentenblatt.json' && jsonData.dozenten) {
+          result = jsonData.dozenten.find(d => (d.id === id) || (d.nachname === id));
+        } else if (safeFile === 'zuarbeitsblatt.json' && jsonData.module) {
+          result = jsonData.module.find(m => (m.id === id) || (m.modulnr === id));
         }
 
-        const idRe = new RegExp('(^|\\\\n)ex:' + id + '(?=\\\\s|\\\\.|;|\\\\[|$)', 'm');
-        const im = idRe.exec(ttl);
-        if (!im) return res.status(404).send('ID nicht gefunden');
-
-        const idPos = im.index + (im[1] ? im[1].length : 0);
-
-        let docStart = null;
-        for (let i = prefixPositions.length - 1; i >= 0; i--) {
-          if (prefixPositions[i] <= idPos) { docStart = prefixPositions[i]; break; }
-        }
-        if (docStart === null) return res.type('text/plain').send(ttl.trim() + '\\n');
-
-        let docEnd = ttl.length;
-        for (let i = 0; i < prefixPositions.length; i++) {
-          if (prefixPositions[i] > docStart) { docEnd = prefixPositions[i]; break; }
-        }
-
-        const docText = ttl.slice(docStart, docEnd).trim();
-        return res.type('text/plain').send(docText + '\\n');
+        if (!result) return res.status(404).send('Eintrag nicht gefunden');
+        res.json(result);
       } catch (err) {
-        console.error('rdfs/get error:', err);
-        return res.status(500).send('Serverfehler beim Lesen der TTL-Datei');
+        console.error('json/get error:', err);
+        return res.status(500).send('Serverfehler beim Lesen der JSON-Datei');
       }
     });
 

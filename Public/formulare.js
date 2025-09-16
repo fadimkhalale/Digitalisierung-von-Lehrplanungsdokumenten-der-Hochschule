@@ -1,91 +1,90 @@
 document
   .getElementById("example-dozentenblatt-btn")
   .addEventListener("click", () => {
-    document.getElementById(
-      "rdf-input"
-    ).value = `@prefix ex: <http://example.org/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-ex:dozent
-	ex:titel "Prof. Dr." ;
-	ex:vorname "Max" ;
-	ex:nachname "Mustermann" ;
-	ex:fakultaet "FIM" ;
-	ex:arbeitszeit "Vollzeit" ;
-	ex:vollzeitInput "100%" ;
-	ex:email "max.mustermann@htwk-leipzig.de" ;
-	ex:telefon "+49 341 1234567" ;
-	ex:dozentHinweise "Bitte keine Veranstaltungen am Mittwochvormittag planen" ;
-	ex:dekanatHinweise "Raumzuweisung erfolgt nach Kapazität" ;
-	ex:profUnterschrift "Prof. Dr. Mustermann" ;
-	ex:dekanUnterschrift "Prof. Dr. Schmidt" ;
-	ex:datumUnterschrift "15.05.2025" ;
-	ex:dozententag "Mittwoch" ;
-	ex:forschungstag "Donnerstag" ;
-	ex:ausnahmeTag "Freitag Nachmittag" ;
-
-ex:dozent
-	ex:sperrzeit [
-		ex:wochen "1-15" ;
-		ex:wochentag "Mittwoch" ;
-		ex:uhrzeit "08:00-10:00" ;
-		ex:begruendung "Forschungstag";
-	] ;
-
-	ex:sperrzeit [
-		ex:wochen "2-14" ;
-		ex:wochentag "Freitag" ;
-		ex:uhrzeit "13:00-15:00" ;
-		ex:begruendung "Sprechstunde";
-	]
-
-	ex:einsatzzeit [
-		ex:wochen "1-15" ;
-		ex:wochentag "Dienstag" ;
-		ex:uhrzeit "09:15-10:45" ;
-		ex:anmerkung "Vorlesung";
-	] ;
-
-	ex:einsatzzeit [
-		ex:wochen "1-15" ;
-		ex:wochentag "Dienstag" ;
-		ex:uhrzeit "13:30-15:00" ;
-		ex:anmerkung "Seminar";
-	] ;
-
-	ex:lehrveranstaltung [
-		ex:nummer "1" ;
-		ex:fakultaet "FIM" ;
-		ex:studiengang "BIB" ;
-		ex:fs "3" ;
-		ex:gruppen "1-5" ;
-		ex:modulnr "1300" ;
-		ex:modulname "BAUKO I" ;
-		ex:swsVorlesung "2" ;
-		ex:swsSeminar "0" ;
-		ex:swsPraktikum "0" ;
-		ex:digital "nein" ;
-		ex:bemerkung "Für alle Gruppen gemeinsam";
-	] ;
-
-	ex:lehrveranstaltung [
-		ex:nummer "2" ;
-		ex:fakultaet "FIM" ;
-		ex:studiengang "BIB" ;
-		ex:fs "3" ;
-		ex:gruppen "1-3" ;
-		ex:modulnr "1301" ;
-		ex:modulname "BAUKO II" ;
-		ex:swsVorlesung "0" ;
-		ex:swsSeminar "2" ;
-		ex:swsPraktikum "0" ;
-		ex:digital "teilweise" ;
-		ex:bemerkung "Hybrid-Seminar (wöchentlich wechselnd)";
-	] ;`;
+    document.getElementById("rdf-input").value = JSON.stringify({
+      "dozent": {
+        "titel": "Prof. Dr.",
+        "vorname": "Max",
+        "nachname": "Mustermann",
+        "fakultaet": "FIM",
+        "arbeitszeit": "Vollzeit",
+        "vollzeitInput": "100%",
+        "email": "max.mustermann@htwk-leipzig.de",
+        "telefon": "+49 341 1234567",
+        "dozentHinweise": "Bitte keine Veranstaltungen am Mittwochvormittag planen",
+        "dekanatHinweise": "Raumzuweisung erfolgt nach Kapazität",
+        "profUnterschrift": "Prof. Dr. Mustermann",
+        "dekanUnterschrift": "Prof. Dr. Schmidt",
+        "datumUnterschrift": "15.05.2025",
+        "dozententag": "Mittwoch",
+        "forschungstag": "Donnerstag",
+        "ausnahmeTag": "Freitag Nachmittag",
+        "sperrzeit": [
+          {
+            "wochen": "1-15",
+            "wochentag": "Mittwoch",
+            "uhrzeit": "08:00-10:00",
+            "begruendung": "Forschungstag"
+          },
+          {
+            "wochen": "2-14",
+            "wochentag": "Freitag",
+            "uhrzeit": "13:00-15:00",
+            "begruendung": "Sprechstunde"
+          }
+        ],
+        "einsatzzeit": [
+          {
+            "wochen": "1-15",
+            "wochentag": "Dienstag",
+            "uhrzeit": "09:15-10:45",
+            "anmerkung": "Vorlesung"
+          },
+          {
+            "wochen": "1-15",
+            "wochentag": "Dienstag",
+            "uhrzeit": "13:30-15:00",
+            "anmerkung": "Seminar"
+          }
+        ],
+        "lehrveranstaltung": [
+          {
+            "nummer": "1",
+            "fakultaet": "FIM",
+            "studiengang": "BIB",
+            "fs": "3",
+            "gruppen": "1-5",
+            "modulnr": "1300",
+            "modulname": "BAUKO I",
+            "swsVorlesung": "2",
+            "swsSeminar": "0",
+            "swsPraktikum": "0",
+            "digital": "nein",
+            "bemerkung": "Für alle Gruppen gemeinsam"
+          },
+          {
+            "nummer": "2",
+            "fakultaet": "FIM",
+            "studiengang": "BIB",
+            "fs": "3",
+            "gruppen": "1-3",
+            "modulnr": "1301",
+            "modulname": "BAUKO II",
+            "swsVorlesung": "0",
+            "swsSeminar": "2",
+            "swsPraktikum": "0",
+            "digital": "teilweise",
+            "bemerkung": "Hybrid-Seminar (wöchentlich wechselnd)"
+          }
+        ]
+      }
+    }, null, 2);
+    
     if (window.currentTemplate !== "dozent") {
       document.getElementById("switch-template-btn").click();
     }
   });
+
 const formHTML = `
 				<div class="container">
 					 <div class="zuarbeit-header-box">
@@ -382,203 +381,35 @@ function setupEventListeners() {
 }
 setupEventListeners();
 
-// --
-// Function
-// --
-function parseRDF() {
-  const ttlData = document.getElementById("rdf-input").value;
 
-  if (!ttlData.trim()) {
-    alert("Bitte RDF-Daten eingeben!");
+function parseJSON() {
+  const jsonData = document.getElementById("rdf-input").value;
+
+  if (!jsonData.trim()) {
+    alert("Bitte JSON-Daten eingeben!");
     return;
   }
 
   try {
-    const data = {
-      titel: "",
-      vorname: "",
-      nachname: "",
-      fakultaet: "",
-      studiengang: "",
-      fs: "",
-      gruppen: "",
-      modulnr: "",
-      modulname: "",
-      lehrveranstaltung: "",
-      swsVorlesung: "",
-      swsSeminar: "",
-      swsPraktikum: "",
-      raumV: "",
-	  raumS: "",
-	  raumP: "",
-      technikV: "",
-	  technikS: "",
-	  technikP: "",
-      planungshinweise: "",
-      kwHinweise: "",
-      name: "",
-      unterschrift: "",
-      email: "",
-      telefon: "",
-      dozentHinweise: "",
-      dekanatHinweise: "",
-      arbeitszeit: "",
-      vollzeitInput: "",
-      hinweise: "",
-      lesende: [],
-      seminarleiter: [],
-      praktikumsleiter: [],
-      lehrveranstaltungen: [],
-      einsatzzeiten: [],
-      sperrzeiten: [],
-      dozententag: "",
-      forschungstag: "",
-      ausnahmeTag: "",
-      profUnterschrift: "",
-      dekanUnterschrift: "",
-      datumUnterschrift: "",
-      rueckgabedatum: "",
-    };
+    const data = JSON.parse(jsonData);
+    
+    // Check if it's dozent or modul data
+    const isDozent = data.dozent !== undefined;
+    const jsonDataObj = isDozent ? data.dozent : data.modul;
 
-    let currentPerson = null;
-    let currentLV = null;
-    let currentEinsatzzeit = null;
-    let currentSperrzeit = null;
-    const lines = ttlData.split("\n");
-
-    for (let line of lines) {
-      line = line.trim();
-      if (!line || line.startsWith("@prefix") || line.startsWith("#")) continue;
-
-      if (line.includes("ex:lesende [")) {
-        currentPerson = { type: "lesende" };
-        data.lesende.push(currentPerson);
-      } else if (line.includes("ex:seminarleiter [")) {
-        currentPerson = { type: "seminarleiter" };
-        data.seminarleiter.push(currentPerson);
-      } else if (line.includes("ex:praktikumsleiter [")) {
-        currentPerson = { type: "praktikumsleiter" };
-        data.praktikumsleiter.push(currentPerson);
-      } else if (line.includes("ex:lehrveranstaltung [")) {
-        currentLV = {};
-        data.lehrveranstaltungen.push(currentLV);
-      } else if (line.includes("ex:einsatzzeit [")) {
-        currentEinsatzzeit = {};
-        data.einsatzzeiten.push(currentEinsatzzeit);
-      } else if (line.includes("ex:sperrzeit [")) {
-        currentSperrzeit = {};
-        data.sperrzeiten.push(currentSperrzeit);
-      } else if (line.endsWith(";") || line.endsWith(".")) {
-        const lineEnd = line.endsWith(";") ? line.length - 1 : line.length;
-        const parts = line.substring(0, lineEnd).split(/\s+/);
-
-        if (parts.length >= 2) {
-          const prop = parts[0];
-          let value = parts.slice(1).join(" ").trim();
-
-          if (value.startsWith('"') && value.endsWith('"')) {
-            value = value.substring(1, value.length - 1);
-          } else if (value.startsWith("<") && value.endsWith(">")) {
-            value = value.substring(1, value.length - 1);
-          }
-
-          if (currentPerson) {
-            if (prop === "ex:titel") currentPerson.titel = value;
-            else if (prop === "ex:name") currentPerson.name = value;
-            else if (prop === "ex:gruppen") currentPerson.gruppen = value;
-            else if (prop === "ex:erlaeuterung")
-              currentPerson.erlaeuterung = value;
-          } else if (currentLV) {
-            if (prop === "ex:nummer") currentLV.nummer = value;
-            else if (prop === "ex:fakultaet") currentLV.fakultaet = value;
-            else if (prop === "ex:studiengang") currentLV.studiengang = value;
-            else if (prop === "ex:fs") currentLV.fs = value;
-            else if (prop === "ex:gruppen") currentLV.gruppen = value;
-            else if (prop === "ex:modulnr") currentLV.modulnr = value;
-            else if (prop === "ex:modulname") currentLV.modulname = value;
-            else if (prop === "ex:swsVorlesung") currentLV.swsVorlesung = value;
-            else if (prop === "ex:swsSeminar") currentLV.swsSeminar = value;
-            else if (prop === "ex:swsPraktikum") currentLV.swsPraktikum = value;
-            else if (prop === "ex:digital") currentLV.digital = value;
-            else if (prop === "ex:bemerkung") currentLV.bemerkung = value;
-          } else if (currentEinsatzzeit) {
-            if (prop === "ex:wochen") currentEinsatzzeit.wochen = value;
-            else if (prop === "ex:wochentag")
-              currentEinsatzzeit.wochentag = value;
-            else if (prop === "ex:uhrzeit") currentEinsatzzeit.uhrzeit = value;
-            else if (prop === "ex:anmerkung")
-              currentEinsatzzeit.anmerkung = value;
-          } else if (currentSperrzeit) {
-            if (prop === "ex:wochen") currentSperrzeit.wochen = value;
-            else if (prop === "ex:wochentag")
-              currentSperrzeit.wochentag = value;
-            else if (prop === "ex:uhrzeit") currentSperrzeit.uhrzeit = value;
-            else if (prop === "ex:begruendung")
-              currentSperrzeit.begruendung = value;
-          } else {
-            if (prop === "ex:titel") data.titel = value;
-            else if (prop === "ex:vorname") data.vorname = value;
-            else if (prop === "ex:nachname") data.nachname = value;
-            else if (prop === "ex:fakultaet") data.fakultaet = value;
-            else if (prop === "ex:studiengang") data.studiengang = value;
-            else if (prop === "ex:fs") data.fs = value;
-            else if (prop === "ex:gruppen") data.gruppen = value;
-            else if (prop === "ex:modulnr") data.modulnr = value;
-            else if (prop === "ex:modulname") data.modulname = value;
-            else if (prop === "ex:lehrveranstaltung")
-              data.lehrveranstaltung = value;
-            else if (prop === "ex:swsVorlesung") data.swsVorlesung = value;
-            else if (prop === "ex:swsSeminar") data.swsSeminar = value;
-            else if (prop === "ex:swsPraktikum") data.swsPraktikum = value;
-            else if (prop === "ex:raumV") data.raumV = value;
-			else if (prop === "ex:raumS") data.raumS = value;
-			else if (prop === "ex:raumP") data.raumP = value;
-            else if (prop === "ex:technikV") data.technikV = value;
-			else if (prop === "ex:technikS") data.technikS = value;
-			else if (prop === "ex:technikP") data.technikP = value;
-            else if (prop === "ex:planungshinweise")
-              data.planungshinweise = value;
-            else if (prop === "ex:kwHinweise") data.kwHinweise = value;
-            else if (prop === "ex:name") data.name = value;
-            else if (prop === "ex:unterschrift") data.unterschrift = value;
-            else if (prop === "ex:email") data.email = value;
-            else if (prop === "ex:telefon") data.telefon = value;
-            else if (prop === "ex:dozentHinweise") data.dozentHinweise = value;
-            else if (prop === "ex:dekanatHinweise")
-              data.dekanatHinweise = value;
-            else if (prop === "ex:arbeitszeit") data.arbeitszeit = value;
-            else if (prop === "ex:vollzeitInput") data.vollzeitInput = value;
-            else if (prop === "ex:hinweise") data.hinweise = value;
-            else if (prop === "ex:dozententag") data.dozententag = value;
-            else if (prop === "ex:forschungstag") data.forschungstag = value;
-            else if (prop === "ex:ausnahmeTag") data.ausnahmeTag = value;
-            else if (prop === "ex:profUnterschrift")
-              data.profUnterschrift = value;
-            else if (prop === "ex:dekanUnterschrift")
-              data.dekanUnterschrift = value;
-            else if (prop === "ex:datumUnterschrift")
-              data.datumUnterschrift = value;
-            else if (prop === "ex:rueckgabedatum") data.rueckgabedatum = value;
-          }
-        }
-      } else if (line === "] .") {
-        currentPerson = null;
-        currentLV = null;
-        currentEinsatzzeit = null;
-        currentSperrzeit = null;
-      }
-    }
-
-    if (window.currentTemplate === "zuarbeit") {
-      fillZuarbeitsblatt(data);
+    if (window.currentTemplate === "zuarbeit" && !isDozent) {
+      fillZuarbeitsblatt(jsonDataObj);
+    } else if (window.currentTemplate === "dozent" && isDozent) {
+      fillDozentenblatt(jsonDataObj);
     } else {
-      fillDozentenblatt(data);
+      alert("JSON-Daten passen nicht zum aktuellen Formulartyp!");
+      return;
     }
 
-    alert("Formular erfolgreich aus RDF-Daten gefüllt!");
+    alert("Formular erfolgreich aus JSON-Daten gefüllt!");
   } catch (error) {
-    console.error("Error parsing RDF:", error);
-    alert("Fehler beim Parsen der RDF-Daten: " + error.message);
+    console.error("Error parsing JSON:", error);
+    alert("Fehler beim Parsen der JSON-Daten: " + error.message);
   }
 }
 
@@ -600,13 +431,37 @@ function fillZuarbeitsblatt(data) {
   setFieldContent("technikP", data.technikP);
   setFieldContent("rueckgabedatum", data.rueckgabedatum);
   setFieldContent("planungshinweise", data.planungshinweise);
+  
   const signatureInput = document
     .getElementById("signature-name")
     ?.value?.trim();
   setFieldContent("kw-name", signatureInput || data.unterschrift || data.name);
-  fillPersonTable("lesende-table", data.lesende);
-  fillPersonTable("seminarleiter-table", data.seminarleiter);
-  fillPersonTable("praktikumsleiter-table", data.praktikumsleiter);
+  
+  // Handle lesende, seminarleiter, praktikumsleiter
+  if (data.lesende) {
+    if (Array.isArray(data.lesende)) {
+      fillPersonTable("lesende-table", data.lesende);
+    } else {
+      fillPersonTable("lesende-table", [data.lesende]);
+    }
+  }
+  
+  if (data.seminarleiter) {
+    if (Array.isArray(data.seminarleiter)) {
+      fillPersonTable("seminarleiter-table", data.seminarleiter);
+    } else {
+      fillPersonTable("seminarleiter-table", [data.seminarleiter]);
+    }
+  }
+  
+  if (data.praktikumsleiter) {
+    if (Array.isArray(data.praktikumsleiter)) {
+      fillPersonTable("praktikumsleiter-table", data.praktikumsleiter);
+    } else {
+      fillPersonTable("praktikumsleiter-table", [data.praktikumsleiter]);
+    }
+  }
+  
   if (data.planungshinweise) {
     const hints = data.planungshinweise.toLowerCase();
     setCheckbox("planung1", hints.includes("gleichmäßige"));
@@ -615,6 +470,7 @@ function fillZuarbeitsblatt(data) {
     setCheckbox("planung4", hints.includes("keine blockplanung"));
     setCheckbox("planung5", hints.includes("vorlesung zwingend"));
   }
+  
   if (data.kwHinweise) {
     const kwInputs = document.querySelectorAll(".kw-grid .form-input");
     const kwList = data.kwHinweise.split(",");
@@ -628,6 +484,7 @@ function fillZuarbeitsblatt(data) {
       }
     });
   }
+  
   document.querySelectorAll(".signature-box").forEach((box) => {
     if (box.textContent.includes("Professor/in")) {
       box.innerHTML = `Datum: ${
@@ -645,9 +502,6 @@ function fillZuarbeitsblatt(data) {
   });
 }
 
-// --
-// Function
-// --
 function fillDozentenblatt(data) {
   setFieldContent("titel", data.titel);
   setFieldContent("vorname", data.vorname);
@@ -657,12 +511,14 @@ function fillDozentenblatt(data) {
   setFieldContent("hinweise", data.hinweise);
   setFieldContent("dozent-hinweise", data.hinweise || data.dozentHinweise);
   setFieldContent("dekanat-hinweise", data.dekanatHinweise);
+  
   if (data.fakultaet) {
     const checkbox = document.querySelector(
       `#fakultaet-group input[value="${data.fakultaet}"]`
     );
     if (checkbox) checkbox.checked = true;
   }
+  
   if (data.arbeitszeit) {
     const isFulltime = data.arbeitszeit.toLowerCase().includes("vollzeit");
     document.getElementById(
@@ -673,59 +529,64 @@ function fillDozentenblatt(data) {
       setFieldContent("vollzeit-input", data.vollzeitInput);
     }
   }
+  
   const lvTable = document.querySelector("#lehrveranstaltungen tbody");
-  if (lvTable) {
+  if (lvTable && data.lehrveranstaltung) {
     lvTable.innerHTML = "";
-    data.lehrveranstaltungen.forEach((lv, index) => {
+    data.lehrveranstaltung.forEach((lv, index) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-								<td>${index + 1}</td>
-								<td>${lv.fakultaet || ""}</td>
-								<td>${lv.studiengang || ""}</td>
-								<td>${lv.fs || ""}</td>
-								<td>${lv.gruppen || ""}</td>
-								<td>${lv.modulnr || ""}</td>
-								<td>${lv.modulname || ""}</td>
-								<td>${lv.swsVorlesung || "0"}</td>
-								<td>${lv.swsSeminar || "0"}</td>
-								<td>${lv.swsPraktikum || "0"}</td>
-								<td>${lv.digital || ""}</td>
-								<td>${lv.bemerkung || ""}</td>
-						`;
+        <td>${index + 1}</td>
+        <td>${lv.fakultaet || ""}</td>
+        <td>${lv.studiengang || ""}</td>
+        <td>${lv.fs || ""}</td>
+        <td>${lv.gruppen || ""}</td>
+        <td>${lv.modulnr || ""}</td>
+        <td>${lv.modulname || ""}</td>
+        <td>${lv.swsVorlesung || "0"}</td>
+        <td>${lv.swsSeminar || "0"}</td>
+        <td>${lv.swsPraktikum || "0"}</td>
+        <td>${lv.digital || ""}</td>
+        <td>${lv.bemerkung || ""}</td>
+      `;
       lvTable.appendChild(row);
     });
   }
+  
   setFieldContent("anlage-titel", data.titel);
   setFieldContent("anlage-vorname", data.vorname);
   setFieldContent("anlage-nachname", data.nachname);
+  
   const einsatzzeitenTable = document.querySelector("#einsatzzeiten tbody");
-  if (einsatzzeitenTable) {
+  if (einsatzzeitenTable && data.einsatzzeit) {
     einsatzzeitenTable.innerHTML = "";
-    (data.einsatzzeiten || []).forEach((einsatz) => {
+    data.einsatzzeit.forEach((einsatz) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-								<td>${einsatz.wochen || ""}</td>
-								<td>${einsatz.wochentag || ""}</td>
-								<td>${einsatz.uhrzeit || ""}</td>
-								<td>${einsatz.anmerkung || ""}</td>
-						`;
+        <td>${einsatz.wochen || ""}</td>
+        <td>${einsatz.wochentag || ""}</td>
+        <td>${einsatz.uhrzeit || ""}</td>
+        <td>${einsatz.anmerkung || ""}</td>
+      `;
       einsatzzeitenTable.appendChild(row);
     });
   }
+  
   const sperrzeitenTable = document.querySelector("#sperrzeiten tbody");
-  if (sperrzeitenTable) {
+  if (sperrzeitenTable && data.sperrzeit) {
     sperrzeitenTable.innerHTML = "";
-    (data.sperrzeiten || []).forEach((sperre) => {
+    data.sperrzeit.forEach((sperre) => {
       const row = document.createElement("tr");
       row.innerHTML = `
-								<td>${sperre.wochen || ""}</td>
-								<td>${sperre.wochentag || ""}</td>
-								<td>${sperre.uhrzeit || ""}</td>
-								<td>${sperre.begruendung || ""}</td>
-						`;
+        <td>${sperre.wochen || ""}</td>
+        <td>${sperre.wochentag || ""}</td>
+        <td>${sperre.uhrzeit || ""}</td>
+        <td>${sperre.begruendung || ""}</td>
+      `;
       sperrzeitenTable.appendChild(row);
     });
   }
+  
   if (data.dozententag || data.forschungstag) {
     document
       .querySelectorAll('.time-table input[type="checkbox"]')
@@ -758,6 +619,7 @@ function fillDozentenblatt(data) {
       if (ausnahmeField) ausnahmeField.textContent = data.ausnahmeTag;
     }
   }
+  
   document.querySelectorAll(".signature-box").forEach((box) => {
     if (box.textContent.includes("Professor/in")) {
       box.innerHTML = `Datum: ${
@@ -775,9 +637,6 @@ function fillDozentenblatt(data) {
   });
 }
 
-// --
-// Function
-// --
 function setFieldContent(id, content) {
   const el = document.getElementById(id);
   if (el) el.textContent = content || "";
@@ -1322,81 +1181,83 @@ function generatePDF() {
 
   html2pdf().set(opt).from(element).save();
 }
-document.addEventListener("DOMContentLoaded", function () {
+
+// Update event listener setup
+function setupEventListeners() {
+  document.getElementById("parse-btn").addEventListener("click", parseJSON);
+  document
+    .getElementById("generate-pdf")
+    .addEventListener("click", generatePDF);
+  document.getElementById("reset-form").addEventListener("click", resetForm);
+}
+
+// Update example button for Zuarbeitsblatt
+document.addEventListener("DOMContentLoaded", () => {
   const exampleBtn = document.getElementById("example-btn");
   if (exampleBtn) {
     exampleBtn.addEventListener("click", () => {
-      const exampleTTL = `@prefix ex: <http://example.org/> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-
-ex:modul
-	ex:fakultaet "FIM" ;
-	ex:studiengang "BIB" ;
-	ex:fs "3" ;
-	ex:gruppen "13 BIB 1 - 5" ;
-	ex:modulnr "1300" ;
-	ex:modulname "BAUKO I" ;
-	ex:lehrveranstaltung "Einführung in die Bibliothekswissenschaft" ;
-	ex:swsVorlesung "2" ;
-	ex:swsSeminar "1" ;
-	ex:swsPraktikum "2" ;
-	ex:raum "Hörsaal 123, Seminarraum 45" ;
-	ex:technik "Beamer, PC, Whiteboard" ;
-	ex:planungshinweise "Gleichmäßige Verteilung auf gerade/ungerade Wochen, Vorlesung zwingend vor Seminar" ;
-	ex:kwHinweise "KW42, KW43, KW44, KW45, KW46, KW47, KW48, KW49, KW50, KW51, KW52, KW01, KW02, KW03, KW04, KW05, KW06" ;
-	ex:name "Prof. Dr. Müller" ;
-	ex:unterschrift "Fadi Mkhalale" ;
-	ex:rueckgabedatum "15.05.2025" ;
-	ex:profUnterschrift "Prof. Dr. Mustermann" ;
-	ex:dekanUnterschrift "Prof. Dr. Schmidt" ;
-	ex:datumUnterschrift "15.05.2025" ;
-
-	ex:lesende [
-		ex:titel "Prof. Dr." ;
-		ex:name "Schmidt" ;
-		ex:gruppen "1-5" ;
-		ex:erlaeuterung "Gemeinsame Vorlesung für alle Gruppen, montags 09:15-10:45 Uhr";
-	] ;
-
-	ex:seminarleiter [
-		ex:titel "Dr." ;
-		ex:name "Meier" ;
-		ex:gruppen "1-3" ;
-		ex:erlaeuterung "Seminar in 2 Gruppen, Blockveranstaltung gerader Wochen, Dienstag 13:30-17:00 Uhr";
-	] ;
-
-	ex:seminarleiter [
-		ex:titel "M.Sc." ;
-		ex:name "Schulze" ;
-		ex:gruppen "4-5" ;
-		ex:erlaeuterung "Seminar in 2 Gruppen, Blockveranstaltung ungerader Wochen, Mittwoch 13:30-17:00 Uhr";
-	] ;
-
-	ex:praktikumsleiter [
-		ex:titel "" ;
-		ex:name "Wagner" ;
-		ex:gruppen "1-5" ;
-		ex:erlaeuterung "Praktikum in Einzelgruppen, wöchentlich wechselnd: Gruppe 1+2 (KW42,44,...), Gruppe 3+4 (KW43,45,...), Gruppe 5 (flexibel)";
-	] .`;
-
-      document.getElementById("rdf-input").value = exampleTTL;
+      document.getElementById("rdf-input").value = JSON.stringify({
+        "modul": {
+          "fakultaet": "FIM",
+          "studiengang": "BIB",
+          "fs": "3",
+          "gruppen": "13 BIB 1 - 5",
+          "modulnr": "1300",
+          "modulname": "BAUKO I",
+          "lehrveranstaltung": "Einführung in die Bibliothekswissenschaft",
+          "swsVorlesung": "2",
+          "swsSeminar": "1",
+          "swsPraktikum": "2",
+          "raumV": "Hörsaal 123",
+          "raumS": "Seminarraum 45",
+          "raumP": "Labor 67",
+          "technikV": "Beamer, PC",
+          "technikS": "Whiteboard",
+          "technikP": "Spezialausrüstung",
+          "planungshinweise": "Gleichmäßige Verteilung auf gerade/ungerade Wochen, Vorlesung zwingend vor Seminar",
+          "kwHinweise": "KW42, KW43, KW44, KW45, KW46, KW47, KW48, KW49, KW50, KW51, KW52, KW01, KW02, KW03, KW04, KW05, KW06",
+          "name": "Prof. Dr. Müller",
+          "unterschrift": "Fadi Mkhalale",
+          "rueckgabedatum": "15.05.2025",
+          "profUnterschrift": "Prof. Dr. Mustermann",
+          "dekanUnterschrift": "Prof. Dr. Schmidt",
+          "datumUnterschrift": "15.05.2025",
+          "lesende": {
+            "titel": "Prof. Dr.",
+            "name": "Schmidt",
+            "gruppen": "1-5",
+            "erlaeuterung": "Gemeinsame Vorlesung für alle Gruppen, montags 09:15-10:45 Uhr"
+          },
+          "seminarleiter": [
+            {
+              "titel": "Dr.",
+              "name": "Meier",
+              "gruppen": "1-3",
+              "erlaeuterung": "Seminar in 2 Gruppen, Blockveranstaltung gerader Wochen, Dienstag 13:30-17:00 Uhr"
+            },
+            {
+              "titel": "M.Sc.",
+              "name": "Schulze",
+              "gruppen": "4-5",
+              "erlaeuterung": "Seminar in 2 Gruppen, Blockveranstaltung ungerader Wochen, Mittwoch 13:30-17:00 Uhr"
+            }
+          ],
+          "praktikumsleiter": {
+            "titel": "",
+            "name": "Wagner",
+            "gruppen": "1-5",
+            "erlaeuterung": "Praktikum in Einzelgruppen, wöchentlich wechselnd: Gruppe 1+2 (KW42,44,...), Gruppe 3+4 (KW43,45,...), Gruppe 5 (flexibel)"
+          }
+        }
+      }, null, 2);
     });
   }
-  const observer = new MutationObserver(() => {
-    const boxes = document.querySelectorAll(".signature-box");
-    if (boxes.length >= 2) {
-      boxes[0].innerHTML =
-        "<div>Datum: 15.05.2025</div><div>Unterschrift: Prof. Dr. Mustermann</div><div>Verantwortliche/r Professor/in</div>";
-      boxes[1].innerHTML =
-        "<div>Datum: 15.05.2025</div><div>Unterschrift: Prof. Dr. Schmidt</div><div>Dekan/in der Fakultät</div>";
-      observer.disconnect();
-    }
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
 });
+
+// Update loadSavedLists and loadSelectedIntoTextarea functions
 async function loadSavedLists() {
   try {
-    const res = await fetch("/rdfs/list?type=all");
+    const res = await fetch("/json/list?type=all");
     if (!res.ok) throw new Error("Liste konnte nicht geladen werden");
     const list = await res.json();
 
@@ -1426,21 +1287,33 @@ async function loadSelectedIntoTextarea() {
   const dozentSel = document.getElementById("saved-dozenten");
   const zuarbeitSel = document.getElementById("saved-zuarbeit");
   if (!dozentSel || !zuarbeitSel)
-    return alert("Fehlende UI-Elemente für gespeicherte RDFs.");
+    return alert("Fehlende UI-Elemente für gespeicherte JSON-Daten.");
 
   const sel = dozentSel.value || zuarbeitSel.value;
-  if (!sel) return alert("Bitte zunächst ein gespeichertes RDF auswählen.");
+  if (!sel) return alert("Bitte zunächst ein gespeichertes JSON auswählen.");
 
   const [file, id] = sel.split("||");
   try {
     const res = await fetch(
-      `/rdfs/get?file=${encodeURIComponent(file)}&id=${encodeURIComponent(id)}`
+      `/json/get?file=${encodeURIComponent(file)}&id=${encodeURIComponent(id)}`
     );
-    if (!res.ok) throw new Error("RDF nicht gefunden");
-    const ttl = await res.text();
+    if (!res.ok) throw new Error("JSON nicht gefunden");
+    const jsonData = await res.json();
     const rdfInput = document.getElementById("rdf-input");
     if (!rdfInput) return alert("rdf-input nicht gefunden.");
-    rdfInput.value = ttl;
+    
+    // Create appropriate JSON structure based on type
+    let jsonToDisplay;
+    if (file.includes('dozentenblatt')) {
+      jsonToDisplay = { dozent: jsonData };
+    } else if (file.includes('zuarbeitsblatt')) {
+      jsonToDisplay = { modul: jsonData };
+    } else {
+      jsonToDisplay = jsonData;
+    }
+    
+    rdfInput.value = JSON.stringify(jsonToDisplay, null, 2);
+    
     if (typeof switchTemplate === "function") {
       const wantDozent = file.toLowerCase().includes("dozenten");
       const wantZuar =
@@ -1456,20 +1329,6 @@ async function loadSelectedIntoTextarea() {
     }
   } catch (err) {
     console.error("loadSelectedIntoTextarea error:", err);
-    alert("Konnte RDF nicht laden: " + (err.message || err));
+    alert("Konnte JSON nicht laden: " + (err.message || err));
   }
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadSavedLists();
-  const loadBtn = document.getElementById("load-saved-btn");
-  if (loadBtn && !loadBtn.dataset._bound) {
-    loadBtn.addEventListener("click", loadSelectedIntoTextarea);
-    loadBtn.dataset._bound = "1";
-  }
-  const refreshBtn = document.getElementById("refresh-saved-btn");
-  if (refreshBtn && !refreshBtn.dataset._bound) {
-    refreshBtn.addEventListener("click", loadSavedLists);
-    refreshBtn.dataset._bound = "1";
-  }
-});
