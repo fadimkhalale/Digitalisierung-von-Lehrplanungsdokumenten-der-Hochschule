@@ -55,7 +55,7 @@
       <button
         onclick="window.location.href='pdf-manager.html'"
         style="
-          background-color: #4caf50;
+          background-color: #000000;
           color: white;
           padding: 8px 16px;
           border: none;
@@ -187,37 +187,22 @@
             padding-top: 12px;
           "
         >
-          <h3 style="margin: 6px 0">Gespeicherte JSON-Daten laden</h3>
+           <h3 style="margin: 6px 0">Gespeicherte JSON-Daten laden</h3>
 
-          <label for="saved-dozenten" style="display: block; margin-top: 6px"
-            >Dozenten (dozentenblatt.json)</label
-          >
-          <select
-            id="saved-dozenten"
-            style="
-              width: 100%;
-              padding: 6px;
-              border-radius: 4px;
-              border: 1px solid #ccc;
-            "
-          >
+    <label for="saved-dozenten" style="display: block; margin-top: 6px">
+        Daten (.json)
+    </label>
+    
+    <div class="select-with-input">
+        <select id="saved-dozenten">
             <option value="">-- keine ausgewählt --</option>
-          </select>
+        </select>
+        
+        <input type="text" id="dozenten-input" placeholder="ID eingeben">
+    </div>
 
-          <label for="saved-zuarbeit" style="display: block; margin-top: 8px"
-            >Zuarbeit (zuarbeitsblatt.json)</label
-          >
-          <select
-            id="saved-zuarbeit"
-            style="
-              width: 100%;
-              padding: 6px;
-              border-radius: 4px;
-              border: 1px solid #ccc;
-            "
-          >
-            <option value="">-- keine ausgewählt --</option>
-          </select>
+
+         
 
           <div style="margin-top: 8px">
             <button id="load-saved-btn" type="button">

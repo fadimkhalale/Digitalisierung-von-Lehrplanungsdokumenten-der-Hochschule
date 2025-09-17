@@ -90,7 +90,7 @@ const formHTML = `
 					 <div class="zuarbeit-header-box">
 	<div class="zuarbeit-header-row">
 		<div class="left">
-			HTWK Leipzig<br>DS
+			HTWK Leipzig<br>DS<br>ID:
 		</div>
 		<div class="center">
 			<strong>Zuarbeit</strong><br>
@@ -766,7 +766,7 @@ function switchTemplate() {
 <div class="dozenten-header-box">
 	<div class="dozenten-header-row">
 		<div class="left">
-			HTWK Leipzig<br>DS
+			HTWK Leipzig<br>DS<br>ID:
 		</div>
 		<div class="center">
 			<strong>Dozentenblatt</strong>
@@ -945,7 +945,7 @@ function switchTemplate() {
 						<div class="dozenten-header-box">
 								<div class="dozenten-header-row">
 										<div class="left">
-												HTWK Leipzig<br>DS
+												HTWK Leipzig<br>DS<br>ID:
 										</div>
 										<div class="center">
 												<strong>Anlage 1 zum Dozentenblatt</strong>

@@ -29,7 +29,7 @@ textarea {
   border-radius: 4px;
 }
 button {
-  background-color: #4caf50;
+  background-color: #000000;
   color: white;
   padding: 10px 15px;
   border: none;
@@ -39,7 +39,7 @@ button {
   margin-right: 10px;
 }
 button:hover {
-  background-color: #45a049;
+  background-color: #6a0000;
 }
 .form-container {
   background-color: white;
@@ -82,6 +82,10 @@ button:hover {
   font-weight: bold;
   margin-bottom: 3mm;
   text-decoration: underline;
+}
+.zuarbeitsblatt .form-row.id-row {
+  margin-bottom: 3mm;
+  font-weight: bold;
 }
 .zuarbeitsblatt .form-row {
   display: flex;
