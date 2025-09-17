@@ -3,6 +3,7 @@ document
   .addEventListener("click", () => {
     document.getElementById("rdf-input").value = JSON.stringify({
       "dozent": {
+        "ID": "E12345",
         "titel": "Prof. Dr.",
         "vorname": "Max",
         "nachname": "Mustermann",
@@ -90,7 +91,7 @@ const formHTML = `
 					 <div class="zuarbeit-header-box">
 	<div class="zuarbeit-header-row">
 		<div class="left">
-			HTWK Leipzig<br>DS<br>ID:
+			HTWK Leipzig<br>DS<br>ID: <span id="zuarbeit-id"></span>
 		</div>
 		<div class="center">
 			<strong>Zuarbeit</strong><br>
@@ -414,6 +415,7 @@ function parseJSON() {
 }
 
 function fillZuarbeitsblatt(data) {
+  setFieldContent("zuarbeit-id", data.ID);
   setFieldContent("fakultaet", data.fakultaet);
   setFieldContent("studiengang", data.studiengang);
   setFieldContent("fs", data.fs);
@@ -503,6 +505,8 @@ function fillZuarbeitsblatt(data) {
 }
 
 function fillDozentenblatt(data) {
+  setFieldContent("dozent-id", data.ID);
+  setFieldContent("dozent-id-anlage", data.ID);
   setFieldContent("titel", data.titel);
   setFieldContent("vorname", data.vorname);
   setFieldContent("nachname", data.nachname);
@@ -766,7 +770,7 @@ function switchTemplate() {
 <div class="dozenten-header-box">
 	<div class="dozenten-header-row">
 		<div class="left">
-			HTWK Leipzig<br>DS<br>ID:
+			HTWK Leipzig<br>DS<br>ID: <span id="dozent-id"></span>
 		</div>
 		<div class="center">
 			<strong>Dozentenblatt</strong>
@@ -945,7 +949,7 @@ function switchTemplate() {
 						<div class="dozenten-header-box">
 								<div class="dozenten-header-row">
 										<div class="left">
-												HTWK Leipzig<br>DS<br>ID:
+												HTWK Leipzig<br>DS<br>ID: <span id="dozent-id-anlage"></span>
 										</div>
 										<div class="center">
 												<strong>Anlage 1 zum Dozentenblatt</strong>
@@ -1198,6 +1202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     exampleBtn.addEventListener("click", () => {
       document.getElementById("rdf-input").value = JSON.stringify({
         "modul": {
+          "ID": "E12345",
           "fakultaet": "FIM",
           "studiengang": "BIB",
           "fs": "3",
