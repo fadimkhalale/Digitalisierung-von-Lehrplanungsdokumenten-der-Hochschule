@@ -78,7 +78,6 @@ async function ensureHashesInConfig(configPath) {
   // detect any plaintext password fields
   const usersWithPlain = cfg.users.filter(u => u.password && !u.passwordHash);
   if (usersWithPlain.length === 0) {
-    console.log('Keine Klartext-Passwörter gefunden in config.json.');
     return cfg;
   }
 
@@ -131,6 +130,7 @@ async function readJsonFileSafe(filename) {
 }
 
 // list all .json files in DATA_DIR and extract an ID for each (tries several keys)
+// *** Updated to detect singular 'dozent' and singular 'modul' as well as plural forms ***
 async function listJsonFilesWithIds() {
   if (!fs.existsSync(DATA_DIR)) return [];
   const files = await fsPromises.readdir(DATA_DIR);
@@ -141,11 +141,19 @@ async function listJsonFilesWithIds() {
       const contentRaw = await fsPromises.readFile(path.join(DATA_DIR, f), 'utf8');
       const content = JSON.parse(contentRaw);
       let id = null;
-      // check common places for ID (top-level ID/id, modul.ID, user.ID etc.)
+      // check common places for ID (top-level ID/id)
       if (content && (content.ID || content.id)) id = content.ID || content.id;
+      // check singular 'dozent' (your example)
+      else if (content && content.dozent && (content.dozent.ID || content.dozent.id)) id = content.dozent.ID || content.dozent.id;
+      // check plural 'dozenten' array first entry
+      else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && (content.dozenten[0].ID || content.dozenten[0].id)) {
+        id = content.dozenten[0].ID || content.dozenten[0].id;
+      }
+      // check singular 'modul'
       else if (content && content.modul && (content.modul.ID || content.modul.id)) id = content.modul.ID || content.modul.id;
-      else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && content.dozenten[0].ID) {
-        id = content.dozenten[0].ID;
+      // check plural 'module' array first entry
+      else if (content && content.module && Array.isArray(content.module) && content.module.length > 0 && (content.module[0].ID || content.module[0].id || content.module[0].modulnr)) {
+        id = content.module[0].ID || content.module[0].id || content.module[0].modulnr;
       }
       // fallback: filename without extension
       if (!id) id = path.basename(f, '.json');
@@ -382,7 +390,7 @@ async function init() {
       res.sendFile(path.join(__dirname, 'public', 'pdf-manager.html'));
     });
 
-    // JSON endpoints (replacing RDFS endpoints) — original behavior preserved
+    // JSON endpoints (replacing RDFS endpoints) — original behavior preserved and extended
     app.get('/json/list', requireAuth, (req, res) => {
       const type = req.query.type || 'all';
       const map = { dozent: 'dozentenblatt.json', zuarbeit: 'zuarbeitsblatt.json' };
@@ -395,25 +403,45 @@ async function init() {
         try {
           const jsonData = JSON.parse(fs.readFileSync(full, 'utf8'));
           
-          // Handle different JSON structures
-          if (filename === 'dozentenblatt.json' && jsonData.dozenten) {
-            jsonData.dozenten.forEach(dozent => {
+          // Handle different JSON structures: plural and singular forms
+          if (filename === 'dozentenblatt.json') {
+            if (jsonData.dozenten && Array.isArray(jsonData.dozenten)) {
+              jsonData.dozenten.forEach(dozent => {
+                results.push({
+                  id: dozent.id || dozent.ID || dozent.nachname,
+                  name: `${dozent.titel || ''} ${dozent.vorname || ''} ${dozent.nachname || ''}`.trim(),
+                  file: filename,
+                  type: 'dozent'
+                });
+              });
+            } else if (jsonData.dozent && typeof jsonData.dozent === 'object') {
+              const d = jsonData.dozent;
               results.push({
-                id: dozent.id || dozent.nachname,
-                name: `${dozent.titel || ''} ${dozent.vorname || ''} ${dozent.nachname || ''}`.trim(),
+                id: d.id || d.ID || d.nachname,
+                name: `${d.titel || ''} ${d.vorname || ''} ${d.nachname || ''}`.trim(),
                 file: filename,
                 type: 'dozent'
               });
-            });
-          } else if (filename === 'zuarbeitsblatt.json' && jsonData.module) {
-            jsonData.module.forEach(modul => {
+            }
+          } else if (filename === 'zuarbeitsblatt.json') {
+            if (jsonData.module && Array.isArray(jsonData.module)) {
+              jsonData.module.forEach(modul => {
+                results.push({
+                  id: modul.id || modul.ID || modul.modulnr,
+                  name: `${modul.modulnr || ''} ${modul.modulname || ''}`.trim(),
+                  file: filename,
+                  type: 'zuarbeit'
+                });
+              });
+            } else if (jsonData.modul && typeof jsonData.modul === 'object') {
+              const m = jsonData.modul;
               results.push({
-                id: modul.id || modul.modulnr,
-                name: `${modul.modulnr || ''} ${modul.modulname || ''}`.trim(),
+                id: m.id || m.ID || m.modulnr,
+                name: `${m.modulnr || ''} ${m.modulname || ''}`.trim(),
                 file: filename,
                 type: 'zuarbeit'
               });
-            });
+            }
           }
         } catch (err) {
           console.error(`Fehler beim Lesen von ${filename}:`, err.message);
@@ -435,10 +463,20 @@ async function init() {
         const jsonData = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
         
         let result = null;
-        if (safeFile === 'dozentenblatt.json' && jsonData.dozenten) {
-          result = jsonData.dozenten.find(d => (d.id === id) || (d.nachname === id));
-        } else if (safeFile === 'zuarbeitsblatt.json' && jsonData.module) {
-          result = jsonData.module.find(m => (m.id === id) || (m.modulnr === id));
+        if (safeFile === 'dozentenblatt.json') {
+          if (jsonData.dozenten && Array.isArray(jsonData.dozenten)) {
+            result = jsonData.dozenten.find(d => (d.id === id) || (d.ID === id) || (d.nachname === id));
+          } else if (jsonData.dozent && typeof jsonData.dozent === 'object') {
+            const d = jsonData.dozent;
+            if ((d.id && d.id === id) || (d.ID && d.ID === id) || (d.nachname && d.nachname === id)) result = d;
+          }
+        } else if (safeFile === 'zuarbeitsblatt.json') {
+          if (jsonData.module && Array.isArray(jsonData.module)) {
+            result = jsonData.module.find(m => (m.id === id) || (m.ID === id) || (m.modulnr === id));
+          } else if (jsonData.modul && typeof jsonData.modul === 'object') {
+            const m = jsonData.modul;
+            if ((m.id && m.id === id) || (m.ID && m.ID === id) || (m.modulnr && m.modulnr === id)) result = m;
+          }
         }
 
         if (!result) return res.status(404).send('Eintrag nicht gefunden');
@@ -496,28 +534,28 @@ async function init() {
             // collect candidates for matching (strings)
             const candidates = [];
             if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
-            // check nested likely spots
-            if (content && content.modul && (content.modul.ID || content.modul.id)) candidates.push(String(content.modul.ID || content.modul.id));
-            if (content && content.id) candidates.push(String(content.id));
-            // if content is array (e.g., dozenten array), check entries
+            // singular dozent
+            if (content && content.dozent && (content.dozent.ID || content.dozent.id)) candidates.push(String(content.dozent.ID || content.dozent.id));
+            // plural dozenten array
+            if (content && content.dozenten && Array.isArray(content.dozenten)) {
+              for (const d of content.dozenten) {
+                if (d && (d.ID || d.id || d.nachname)) candidates.push(String(d.ID || d.id || d.nachname));
+              }
+            }
+            // singular modul
+            if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) {
+              candidates.push(String(content.modul.ID || content.modul.id || content.modul.modulnr));
+            }
+            // plural module array
+            if (content && content.module && Array.isArray(content.module)) {
+              for (const m of content.module) {
+                if (m && (m.ID || m.id || m.modulnr)) candidates.push(String(m.ID || m.id || m.modulnr));
+              }
+            }
+            // also include top-level id properties inside nested structures
             if (Array.isArray(content)) {
               for (const entry of content) {
                 if (entry && (entry.ID || entry.id)) candidates.push(String(entry.ID || entry.id));
-              }
-            }
-            // if content has arrays like dozenten or module, check them too
-            if (content && content.dozenten && Array.isArray(content.dozenten)) {
-              for (const d of content.dozenten) {
-                if (d && (d.ID || d.id || d.idnr || d.nachname)) {
-                  candidates.push(String(d.ID || d.id || d.idnr || d.nachname));
-                }
-              }
-            }
-            if (content && content.module && Array.isArray(content.module)) {
-              for (const m of content.module) {
-                if (m && (m.ID || m.id || m.modulnr)) {
-                  candidates.push(String(m.ID || m.id || m.modulnr));
-                }
               }
             }
 
@@ -545,7 +583,8 @@ async function init() {
     });
 
     // start server
-    app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT} — DATA_DIR=${DATA_DIR}`));
+    app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT}`));
+
   } catch (err) {
     console.error('Initialisierungsfehler:', err);
     process.exit(1);

@@ -3,7 +3,7 @@ document
   .addEventListener("click", () => {
     document.getElementById("rdf-input").value = JSON.stringify({
       "dozent": {
-        "ID": "E12345",
+        "ID": "D12345",
         "titel": "Prof. Dr.",
         "vorname": "Max",
         "nachname": "Mustermann",
@@ -944,7 +944,8 @@ function switchTemplate() {
 </div>
 				</div>
 
-				 Page 2 - Anlage 1
+<!-- Page 2 - Anlage 1-->
+				
 				<div class="container page-break">
 						<div class="dozenten-header-box">
 								<div class="dozenten-header-row">
@@ -955,7 +956,7 @@ function switchTemplate() {
 												<strong>Anlage 1 zum Dozentenblatt</strong>
 										</div>
 										<div class="right">
-												 Optional: Hier könnte etwas rechts stehen
+												
 										</div>
 								</div>
 						</div>
@@ -1202,7 +1203,7 @@ document.addEventListener("DOMContentLoaded", () => {
     exampleBtn.addEventListener("click", () => {
       document.getElementById("rdf-input").value = JSON.stringify({
         "modul": {
-          "ID": "E12345",
+          "ID": "Z12345",
           "fakultaet": "FIM",
           "studiengang": "BIB",
           "fs": "3",
