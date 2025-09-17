@@ -16,7 +16,11 @@ const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = path.join(__dirname, 'data');
+// original variable kept (lowercase 'data') — we will also support 'Data' (uppercase) as requested
+const DATA_DIR_CANDIDATES = [
+  path.join(__dirname, 'Data'), // preferred, as user said folder is named "Data"
+  path.join(__dirname, 'data')  // fallback if lowercase 'data' exists
+];
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const BCRYPT_COST = 12;
 
@@ -26,6 +30,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // We'll configure session middleware after loading config (so we can use session secret from config if provided)
+
+// Helper: choose existing Data dir (returns first that exists or the first candidate if none exist)
+function chooseDataDir() {
+  for (const d of DATA_DIR_CANDIDATES) {
+    if (fs.existsSync(d) && fs.statSync(d).isDirectory()) return d;
+  }
+  // if none exist, return the preferred (uppercase) so it will be created on demand by other code if needed
+  return DATA_DIR_CANDIDATES[0];
+}
+const DATA_DIR = chooseDataDir();
 
 // Helper: create timestamped backup of config.json
 async function backupConfigIfExists(configPath) {
@@ -96,7 +110,57 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// Main init: ensure config hashed, then register routes that depend on config/session
+// --- Neue Hilfsfunktionen für JSON-Dateien in DATA_DIR ---
+
+// validate filename is a plain filename ending with .json and no traversal
+function isJsonFile(filename) {
+  if (typeof filename !== 'string') return false;
+  if (!filename.toLowerCase().endsWith('.json')) return false;
+  if (filename.includes('..') || path.isAbsolute(filename)) return false;
+  return true;
+}
+
+// read JSON file from DATA_DIR safely (throws on error)
+async function readJsonFileSafe(filename) {
+  if (!isJsonFile(filename)) throw new Error('Ungültiger Dateiname');
+  const filepath = path.join(DATA_DIR, filename);
+  // ensure it still resides in DATA_DIR
+  if (!filepath.startsWith(DATA_DIR)) throw new Error('Ungültiger Pfad');
+  const raw = await fsPromises.readFile(filepath, 'utf8');
+  return JSON.parse(raw);
+}
+
+// list all .json files in DATA_DIR and extract an ID for each (tries several keys)
+async function listJsonFilesWithIds() {
+  if (!fs.existsSync(DATA_DIR)) return [];
+  const files = await fsPromises.readdir(DATA_DIR);
+  const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+  const results = [];
+  for (const f of jsonFiles) {
+    try {
+      const contentRaw = await fsPromises.readFile(path.join(DATA_DIR, f), 'utf8');
+      const content = JSON.parse(contentRaw);
+      let id = null;
+      // check common places for ID (top-level ID/id, modul.ID, user.ID etc.)
+      if (content && (content.ID || content.id)) id = content.ID || content.id;
+      else if (content && content.modul && (content.modul.ID || content.modul.id)) id = content.modul.ID || content.modul.id;
+      else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && content.dozenten[0].ID) {
+        id = content.dozenten[0].ID;
+      }
+      // fallback: filename without extension
+      if (!id) id = path.basename(f, '.json');
+      results.push({ id: String(id), filename: f });
+    } catch (err) {
+      // skip broken JSON but still include filename fallback id
+      results.push({ id: path.basename(f, '.json'), filename: f, _error: 'invalid json' });
+    }
+  }
+  // sort by id for nicer UX
+  results.sort((a,b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+  return results;
+}
+
+// --- Main init: ensure config hashed, then register routes that depend on config/session ---
 async function init() {
   try {
     // Ensure config has passwordHash fields and is updated if necessary
@@ -105,6 +169,7 @@ async function init() {
     // Load the (possibly updated) config synchronously for the rest of the app
     let config = {};
     try {
+      // require caches; that's OK because file has been updated on disk already
       config = require(CONFIG_PATH);
     } catch (err) {
       console.error('Fehler beim Laden der config.json nach Hashing:', err);
@@ -317,7 +382,7 @@ async function init() {
       res.sendFile(path.join(__dirname, 'public', 'pdf-manager.html'));
     });
 
-    // JSON endpoints (replacing RDFS endpoints)
+    // JSON endpoints (replacing RDFS endpoints) — original behavior preserved
     app.get('/json/list', requireAuth, (req, res) => {
       const type = req.query.type || 'all';
       const map = { dozent: 'dozentenblatt.json', zuarbeit: 'zuarbeitsblatt.json' };
@@ -384,8 +449,103 @@ async function init() {
       }
     });
 
+    // --- NEUE ENDPOINTS: Liste aller JSON-Dateien im Data-Ordner und Laden per Filename / ID ---
+    // GET /api/json-list
+    app.get('/api/json-list', requireAuth, async (req, res) => {
+      try {
+        const list = await listJsonFilesWithIds();
+        res.json(list);
+      } catch (err) {
+        console.error('Error listing JSON files', err);
+        res.status(500).json({ error: 'Failed to list JSON files' });
+      }
+    });
+
+    // GET /api/json-file/:filename  (loads raw json by filename)
+    app.get('/api/json-file/:filename', requireAuth, async (req, res) => {
+      try {
+        const filename = req.params.filename;
+        if (!isJsonFile(filename)) return res.status(400).json({ error: 'Invalid filename' });
+
+        const filepath = path.join(DATA_DIR, filename);
+        if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'File not found' });
+
+        const raw = await fsPromises.readFile(filepath, 'utf8');
+        // return raw JSON
+        res.type('application/json').send(raw);
+      } catch (err) {
+        console.error('Error reading json-file', err);
+        res.status(500).json({ error: 'Failed to read file' });
+      }
+    });
+
+    // GET /api/json-by-id/:id  (searches all json files and returns the first that matches the ID)
+    app.get('/api/json-by-id/:id', requireAuth, async (req, res) => {
+      try {
+        const idQuery = String(req.params.id).trim();
+        if (!idQuery) return res.status(400).json({ error: 'Missing id' });
+
+        if (!fs.existsSync(DATA_DIR)) return res.status(404).json({ error: 'Data directory not found' });
+
+        const files = await fsPromises.readdir(DATA_DIR);
+        const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+
+        for (const f of jsonFiles) {
+          try {
+            const content = await readJsonFileSafe(f);
+            // collect candidates for matching (strings)
+            const candidates = [];
+            if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
+            // check nested likely spots
+            if (content && content.modul && (content.modul.ID || content.modul.id)) candidates.push(String(content.modul.ID || content.modul.id));
+            if (content && content.id) candidates.push(String(content.id));
+            // if content is array (e.g., dozenten array), check entries
+            if (Array.isArray(content)) {
+              for (const entry of content) {
+                if (entry && (entry.ID || entry.id)) candidates.push(String(entry.ID || entry.id));
+              }
+            }
+            // if content has arrays like dozenten or module, check them too
+            if (content && content.dozenten && Array.isArray(content.dozenten)) {
+              for (const d of content.dozenten) {
+                if (d && (d.ID || d.id || d.idnr || d.nachname)) {
+                  candidates.push(String(d.ID || d.id || d.idnr || d.nachname));
+                }
+              }
+            }
+            if (content && content.module && Array.isArray(content.module)) {
+              for (const m of content.module) {
+                if (m && (m.ID || m.id || m.modulnr)) {
+                  candidates.push(String(m.ID || m.id || m.modulnr));
+                }
+              }
+            }
+
+            // always include filename (without ext) as candidate
+            candidates.push(path.basename(f, '.json'));
+
+            for (const cand of candidates) {
+              if (!cand) continue;
+              if (cand.toString().trim() === idQuery) {
+                // return both filename and parsed data
+                return res.json({ filename: f, data: content });
+              }
+            }
+          } catch (err) {
+            // skip parse errors
+            continue;
+          }
+        }
+
+        return res.status(404).json({ error: 'No JSON found with given ID' });
+      } catch (err) {
+        console.error('Error searching json by id', err);
+        res.status(500).json({ error: 'Failed to search files' });
+      }
+    });
+
     // start server
-    app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT}`));
+    app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT} — DATA_DIR=${DATA_DIR}`));
   } catch (err) {
     console.error('Initialisierungsfehler:', err);
     process.exit(1);

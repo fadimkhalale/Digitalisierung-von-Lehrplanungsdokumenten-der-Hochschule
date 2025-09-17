@@ -1259,34 +1259,98 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Update loadSavedLists and loadSelectedIntoTextarea functions
-async function loadSavedLists() {
-  try {
-    const res = await fetch("/json/list?type=all");
-    if (!res.ok) throw new Error("Liste konnte nicht geladen werden");
-    const list = await res.json();
+// frontend: dynamisches Laden / Übernehmen gespeicherter JSONs
+(async function initSavedJsonUI() {
+  const select = document.getElementById('saved-dozenten');
+  const input = document.getElementById('dozenten-input');
+  const loadBtn = document.getElementById('load-saved-btn');
+  const refreshBtn = document.getElementById('refresh-saved-btn');
+  const rdfTextarea = document.getElementById('rdf-input');
 
-    const dozentSel = document.getElementById("saved-dozenten");
-    const zuarbeitSel = document.getElementById("saved-zuarbeit");
-    if (!dozentSel || !zuarbeitSel) return;
-    dozentSel.innerHTML = '<option value="">-- keine ausgewählt --</option>';
-    zuarbeitSel.innerHTML = '<option value="">-- keine ausgewählt --</option>';
-
-    list.forEach((item) => {
-      const opt = document.createElement("option");
-      opt.value = `${item.file}||${item.id}`;
-      opt.textContent = item.name;
-
-      if (item.type === "dozent") {
-        dozentSel.appendChild(opt);
-      } else if (item.type === "zuarbeit") {
-        zuarbeitSel.appendChild(opt);
-      }
-    });
-  } catch (err) {
-    console.error("loadSavedLists error:", err);
+  async function fetchList() {
+    try {
+      const r = await fetch('/api/json-list');
+      const list = await r.json();
+      return list;
+    } catch (err) {
+      console.error('Fehler beim Laden der Liste', err);
+      return [];
+    }
   }
-}
+
+  function populateSelect(list) {
+    // clear existing options except the first placeholder
+    select.innerHTML = '<option value="">-- keine ausgewählt --</option>';
+    for (const item of list) {
+      // use ID as shown name (as requested) but keep filename as value
+      const opt = document.createElement('option');
+      opt.value = item.filename;
+      opt.textContent = item.id;
+      select.appendChild(opt);
+    }
+  }
+
+  async function refreshList() {
+    const list = await fetchList();
+    populateSelect(list);
+  }
+
+  // initial load
+  refreshList();
+
+  // refresh button
+  refreshBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    refreshList();
+  });
+
+  // load button: determine source (select value / input value) and load JSON into rdf-input
+  loadBtn?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const selectedFilename = select.value;
+    const typed = (input.value || '').trim();
+
+    try {
+      let data = null;
+
+      if (selectedFilename) {
+        // load by filename
+        const r = await fetch('/api/json-file/' + encodeURIComponent(selectedFilename));
+        if (!r.ok) throw new Error('Datei konnte nicht geladen werden');
+        data = await r.json();
+      } else if (typed) {
+        // try to load by ID first
+        const r = await fetch('/api/json-by-id/' + encodeURIComponent(typed));
+        if (r.ok) {
+          const j = await r.json();
+          // endpoint returns { filename, data }
+          data = j.data || j;
+        } else {
+          // fallback: user typed a filename (with or without .json)
+          let tryName = typed.endsWith('.json') ? typed : typed + '.json';
+          const r2 = await fetch('/api/json-file/' + encodeURIComponent(tryName));
+          if (r2.ok) data = await r2.json();
+          else throw new Error('Keine passende Datei/ID gefunden');
+        }
+      } else {
+        alert('Bitte eine Datei auswählen oder eine ID eingeben.');
+        return;
+      }
+
+      // put pretty-printed JSON into textarea
+      rdfTextarea.value = JSON.stringify(data, null, 2);
+
+      // optional: trigger any parsing/display logic you already have
+      // z.B. parseBtn.click() falls du das automatisch füllen möchtest
+      // document.getElementById('parse-btn')?.click();
+
+    } catch (err) {
+      console.error(err);
+      alert('Fehler beim Laden der JSON: ' + (err.message || err));
+    }
+  });
+})();
+
 
 async function loadSelectedIntoTextarea() {
   const dozentSel = document.getElementById("saved-dozenten");

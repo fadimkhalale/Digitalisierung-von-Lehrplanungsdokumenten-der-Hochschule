@@ -1,0 +1,79 @@
+{
+  "dozent": {
+    "ID": "A12345",
+    "titel": "Prof. Dr.",
+    "vorname": "Max",
+    "nachname": "Mustermann",
+    "fakultaet": "FIM",
+    "arbeitszeit": "Vollzeit",
+    "vollzeitInput": "100%",
+    "email": "max.mustermann@htwk-leipzig.de",
+    "telefon": "+49 341 1234567",
+    "dozentHinweise": "Bitte keine Veranstaltungen am Mittwochvormittag planen",
+    "dekanatHinweise": "Raumzuweisung erfolgt nach Kapazität",
+    "profUnterschrift": "Prof. Dr. Mustermann",
+    "dekanUnterschrift": "Prof. Dr. Schmidt",
+    "datumUnterschrift": "15.05.2025",
+    "dozententag": "Mittwoch",
+    "forschungstag": "Donnerstag",
+    "ausnahmeTag": "Freitag Nachmittag",
+    "sperrzeit": [
+      {
+        "wochen": "1-15",
+        "wochentag": "Mittwoch",
+        "uhrzeit": "08:00-10:00",
+        "begruendung": "Forschungstag"
+      },
+      {
+        "wochen": "2-14",
+        "wochentag": "Freitag",
+        "uhrzeit": "13:00-15:00",
+        "begruendung": "Sprechstunde"
+      }
+    ],
+    "einsatzzeit": [
+      {
+        "wochen": "1-15",
+        "wochentag": "Dienstag",
+        "uhrzeit": "09:15-10:45",
+        "anmerkung": "Vorlesung"
+      },
+      {
+        "wochen": "1-15",
+        "wochentag": "Dienstag",
+        "uhrzeit": "13:30-15:00",
+        "anmerkung": "Seminar"
+      }
+    ],
+    "lehrveranstaltung": [
+      {
+        "nummer": "1",
+        "fakultaet": "FIM",
+        "studiengang": "BIB",
+        "fs": "3",
+        "gruppen": "1-5",
+        "modulnr": "1300",
+        "modulname": "BAUKO I",
+        "swsVorlesung": "2",
+        "swsSeminar": "0",
+        "swsPraktikum": "0",
+        "digital": "nein",
+        "bemerkung": "Für alle Gruppen gemeinsam"
+      },
+      {
+        "nummer": "2",
+        "fakultaet": "FIM",
+        "studiengang": "BIB",
+        "fs": "3",
+        "gruppen": "1-3",
+        "modulnr": "1301",
+        "modulname": "BAUKO II",
+        "swsVorlesung": "0",
+        "swsSeminar": "2",
+        "swsPraktikum": "0",
+        "digital": "teilweise",
+        "bemerkung": "Hybrid-Seminar (wöchentlich wechselnd)"
+      }
+    ]
+  }
+}
