@@ -1,6 +1,3 @@
-// server.js — erweitert: sicheres Login mit Hashing (automatisch, Backups, keine Löschung)
-// Starten mit: node server.js
-// Hinweis: Dieses Script erweitert dein bestehendes server.js Verhalten.
 // - Beim Start: erstellt ein Backup von config.json, wandelt Klartext-Passwörter zu bcrypt-Hashes um (password -> passwordHash)
 // - Die Datei config.json wird mit restriktiven Rechten (0o600) zurückgeschrieben.
 // - Login vergleicht eingegebenes Passwort mit passwordHash (bcrypt.compare).
