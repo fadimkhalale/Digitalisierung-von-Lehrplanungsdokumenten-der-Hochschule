@@ -258,20 +258,28 @@
       <div class="output-section">
         <h2>Vorschau</h2>
         <!-- Checkboxen für Studienamt, Dekan, Studiendekan -->
-        <div class="checkbox-group">
-          <label>
-            <input type="checkbox" id="checkbox-studienamt">
-            Studienamt
-          </label>
-          <label>
-            <input type="checkbox" id="checkbox-dekan">
-            Dekan
-          </label>
-          <label>
-            <input type="checkbox" id="checkbox-studiendekan">
-            Studiendekan
-          </label>
-        </div>
+        <!-- Checkboxen für Studienamt, Dekan, Studiendekan -->
+<div class="checkbox-group" id="approval-area">
+  <label>
+    <input type="checkbox" id="checkbox-studienamt">
+    Studienamt
+  </label>
+  <label>
+    <input type="checkbox" id="checkbox-dekan">
+    Dekan
+  </label>
+  <label>
+    <input type="checkbox" id="checkbox-studiendekan">
+    Studiendekan
+  </label>
+
+  <!-- Neuer Button zum Speichern der Auswahl -->
+  <button id="save-approval-btn" type="button" style="margin-left:12px; padding:6px 10px;">Speichern</button>
+</div>
+<!-- direkt nach deinem <div class="checkbox-group" id="approval-area"> ... </div> -->
+<div id="approval-status" style="margin-top:8px;font-size:13px;color:#374151"></div>
+
+
         <div class="form-container zuarbeitsblatt" id="form-container"></div>
       </div>
     </div>

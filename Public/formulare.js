@@ -407,6 +407,8 @@ function parseJSON() {
       return;
     }
 
+    // Update approval status display after filling the form
+    try { if (typeof renderApprovalStatusFromObject === "function") renderApprovalStatusFromObject(data); } catch(e) { console.warn("renderApprovalStatusFromObject error", e); }
     alert("Formular erfolgreich aus JSON-Daten gefüllt!");
   } catch (error) {
     console.error("Error parsing JSON:", error);
@@ -1340,6 +1342,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // put pretty-printed JSON into textarea
       rdfTextarea.value = JSON.stringify(data, null, 2);
+      // update approval status immediately after loading JSON into textarea
+      try { if (typeof renderApprovalStatusFromObject === 'function') renderApprovalStatusFromObject(data); } catch(e) { console.warn('renderApprovalStatusFromObject error', e); }
+
 
       // optional: trigger any parsing/display logic you already have
       // z.B. parseBtn.click() falls du das automatisch füllen möchtest
@@ -1402,3 +1407,265 @@ async function loadSelectedIntoTextarea() {
     alert("Konnte JSON nicht laden: " + (err.message || err));
   }
 }
+
+
+
+// ----------------------
+// Save Approval: send the checkbox states to server and update the JSON/status
+// ----------------------
+async function determineTargetFromUIOrTextarea() {
+  // try selects/inputs
+  const selDoz = document.getElementById('saved-dozenten');
+  const selZu = document.getElementById('saved-zuarbeit');
+  const inputDoz = document.getElementById('dozenten-input');
+  const inputZu = document.getElementById('zuarbeit-input');
+
+  const selected = (selDoz && selDoz.value) ? selDoz.value : (selZu && selZu.value) ? selZu.value : null;
+  const typed = (inputDoz && inputDoz.value) ? inputDoz.value.trim() : (inputZu && inputZu.value) ? inputZu.value.trim() : null;
+
+  if (selected) {
+    // selected value is filename in populateSelect implementation
+    return { filename: selected, id: null };
+  }
+  if (typed) {
+    // could be id or filename
+    // try json-by-id endpoint to resolve
+    try {
+      const r = await fetch('/api/json-by-id/' + encodeURIComponent(typed));
+      if (r.ok) {
+        const j = await r.json();
+        return { filename: j.filename, id: typed };
+      } else {
+        // fallback: treat as filename
+        const maybe = typed.endsWith('.json') ? typed : (typed + '.json');
+        return { filename: maybe, id: null };
+      }
+    } catch (e) {
+      const maybe = typed.endsWith('.json') ? typed : (typed + '.json');
+      return { filename: maybe, id: null };
+    }
+  }
+
+  // last resort: parse textarea to find id or just write top-level approvals
+  const ta = document.getElementById('rdf-input');
+  if (ta && ta.value.trim()) {
+    try {
+      const obj = JSON.parse(ta.value);
+      // try top level id fields
+      if (obj && (obj.ID || obj.id)) return { filename: null, id: obj.ID || obj.id };
+      if (obj.dozent && (obj.dozent.ID || obj.dozent.id || obj.dozent.nachname)) return { filename: null, id: obj.dozent.ID || obj.dozent.id || obj.dozent.nachname };
+      if (obj.modul && (obj.modul.ID || obj.modul.id || obj.modul.modulnr)) return { filename: null, id: obj.modul.ID || obj.modul.id || obj.modul.modulnr };
+    } catch (e) { /* ignore */ }
+  }
+
+  return { filename: null, id: null };
+}
+
+
+async function saveApprovalToServer() {
+  try {
+    const cbDekan = document.getElementById('checkbox-dekan');
+    const cbStudienamt = document.getElementById('checkbox-studienamt');
+    const cbStudiendekan = document.getElementById('checkbox-studiendekan');
+    if (!cbDekan || !cbStudienamt || !cbStudiendekan) return alert('Checkboxen nicht gefunden');
+
+    const approvals = {
+      Dekan: cbDekan.checked ? 'ja' : 'nein',
+      Studienamt: cbStudienamt.checked ? 'ja' : 'nein',
+      Studiendekan: cbStudiendekan.checked ? 'ja' : 'nein'
+    };
+
+    // Determine target more aggressively
+    let target = await determineTargetFromUIOrTextarea();
+
+    // If still no target, try to infer from parsed textarea content (IDs or filename fallback)
+    if (!target || (!target.filename && !target.id)) {
+      const ta = document.getElementById('rdf-input');
+      if (ta && ta.value.trim()) {
+        try {
+          const parsed = JSON.parse(ta.value);
+          // try common id places
+          if (parsed.dozent && (parsed.dozent.ID || parsed.dozent.id || parsed.dozent.nachname)) {
+            const candidate = String(parsed.dozent.ID || parsed.dozent.id || parsed.dozent.nachname);
+            const rId = await fetch('/api/json-by-id/' + encodeURIComponent(candidate));
+            if (rId.ok) {
+              const j = await rId.json();
+              target = { filename: j.filename, id: candidate };
+            }
+          } else if (parsed.modul && (parsed.modul.ID || parsed.modul.id || parsed.modul.modulnr)) {
+            const candidate = String(parsed.modul.ID || parsed.modul.id || parsed.modul.modulnr);
+            const rId = await fetch('/api/json-by-id/' + encodeURIComponent(candidate));
+            if (rId.ok) {
+              const j = await rId.json();
+              target = { filename: j.filename, id: candidate };
+            }
+          } else if (parsed.ID || parsed.id) {
+            const candidate = String(parsed.ID || parsed.id);
+            const rId = await fetch('/api/json-by-id/' + encodeURIComponent(candidate));
+            if (rId.ok) {
+              const j = await rId.json();
+              target = { filename: j.filename, id: candidate };
+            }
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+      }
+    }
+
+    if (!target || (!target.filename && !target.id)) {
+      return alert('Konnte Zieldatei nicht bestimmen. Wähle eine gespeicherte Datei aus oder gib eine ID ein.');
+    }
+
+    const payload = { filename: target.filename, id: target.id, approvals };
+
+    console.log('Saving approvals payload:', payload);
+
+    const r = await fetch('/api/save-approval', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+      let txt;
+      try { txt = await r.text(); } catch (e) { txt = r.statusText || 'Fehler'; }
+      console.error('Server responded with error', r.status, txt);
+      return alert('Speichern fehlgeschlagen: ' + txt);
+    }
+
+    alert('Freigabe wurde gespeichert.');
+
+    // refresh status display: try to reload full JSON by filename or id
+    if (target.filename) {
+      try {
+        const r2 = await fetch('/api/json-file/' + encodeURIComponent(target.filename));
+        if (r2.ok) {
+          const obj = await r2.json();
+          renderApprovalStatusFromObject(obj);
+          // also update textarea with new content
+          document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
+          return;
+        }
+      } catch (e) { /* ignore */ }
+    }
+    if (target.id) {
+      try {
+        const r3 = await fetch('/api/json-by-id/' + encodeURIComponent(target.id));
+        if (r3.ok) {
+          const j = await r3.json();
+          renderApprovalStatusFromObject(j.data || j);
+          document.getElementById('rdf-input').value = JSON.stringify(j.data || j, null, 2);
+          return;
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // fallback: update status from approvals we just saved
+    renderApprovalStatusFromObject({ approvals });
+
+  } catch (err) {
+    console.error('saveApprovalToServer error', err);
+    alert('Speichern fehlgeschlagen: ' + (err.message || err));
+  }
+}
+// bind save button if present
+document.addEventListener('DOMContentLoaded', function() {
+  const saveBtn = document.getElementById('save-approval-btn');
+  if (saveBtn) saveBtn.addEventListener('click', saveApprovalToServer);
+});
+
+
+// rekursive Suche nach einem Objekt mit key 'approvals'
+function findApprovalsDeep(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  if (Object.prototype.hasOwnProperty.call(obj, 'approvals') && obj.approvals && typeof obj.approvals === 'object') {
+    return obj.approvals;
+  }
+  for (const k in obj) {
+    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
+    const v = obj[k];
+    if (v && typeof v === 'object') {
+      const found = findApprovalsDeep(v);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function normalizeApprovalValue(v) {
+  if (v === true) return 'ja';
+  if (v === false) return 'nein';
+  if (v == null) return 'nein';
+  return String(v).trim().toLowerCase() === 'ja' ? 'ja' : 'nein';
+}
+
+// Baut eine lesbare Status-Zeile aus approvals-Objekt
+function buildApprovalStatusLine(approvals) {
+  if (!approvals || typeof approvals !== 'object') return '';
+  const parts = [];
+  // die Reihenfolge: Dekan, Studienamt, Studiendekan
+  const roles = ['Dekan', 'Studienamt', 'Studiendekan'];
+  for (const r of roles) {
+    const raw = approvals[r] ?? approvals[r.toLowerCase()] ?? approvals[r.toUpperCase()];
+    const val = normalizeApprovalValue(raw);
+    parts.push(`${r}: ${val === 'ja' ? 'bestätigt' : 'nicht bestätigt'}`);
+  }
+  return parts.join(' · ');
+}
+
+// rendert aus einem bereits geparsten JSON-Objekt
+function renderApprovalStatusFromObject(parsed) {
+  try {
+    // ensure container exists: try to append under an element with id 'approval-area' or at the end of form
+    var container = document.getElementById('approval-status');
+    if (!container) {
+      var approvalArea = document.getElementById('approval-area');
+      if (approvalArea && approvalArea.parentNode) {
+        container = document.createElement('div');
+        container.id = 'approval-status';
+        container.style.marginTop = '8px';
+        container.style.fontSize = '13px';
+        container.style.color = '#374151';
+        approvalArea.parentNode.insertBefore(container, approvalArea.nextSibling);
+      } else {
+        // fallback: try to find a place near the form
+        var form = document.querySelector('form') || document.body;
+        container = document.createElement('div');
+        container.id = 'approval-status';
+        container.style.marginTop = '8px';
+        container.style.fontSize = '13px';
+        container.style.color = '#374151';
+        form.appendChild(container);
+      }
+    }
+    const approvals = findApprovalsDeep(parsed);
+    if (!approvals) {
+      container.textContent = 'Keine Freigaben gefunden.';
+      return;
+    }
+    container.textContent = buildApprovalStatusLine(approvals);
+  } catch (err) {
+    console.warn('renderApprovalStatusFromObject error', err);
+  }
+}
+
+// liest die textarea ('rdf-input') und rendert
+function renderApprovalStatusFromTextarea() {
+  const ta = document.getElementById('rdf-input');
+  if (!ta) return;
+  try {
+    const parsed = JSON.parse(ta.value || '{}');
+    renderApprovalStatusFromObject(parsed);
+  } catch (err) {
+    const container = document.getElementById('approval-status');
+    if (container) container.textContent = '';
+  }
+}
+
+// Wenn JSON per Fetch geladen wird, rufe renderApprovalStatusFromObject(obj) direkt danach auf.
+// Versuche beim Laden einmal automatisch, falls textarea schon Inhalt hat
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(renderApprovalStatusFromTextarea, 200);
+});
+
