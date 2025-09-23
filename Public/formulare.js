@@ -1237,7 +1237,7 @@ function generatePDF() {
   html2pdf().set(opt).from(element).save();
 }
 
-// Update event listener setup
+// Update event listener Einrichtung
 function setupEventListeners() {
   document.getElementById("parse-btn").addEventListener("click", parseJSON);
   document
@@ -1246,7 +1246,7 @@ function setupEventListeners() {
   document.getElementById("reset-form").addEventListener("click", resetForm);
 }
 
-// Update example button for Zuarbeitsblatt
+// Update Beispiel button for Zuarbeitsblatt
 document.addEventListener("DOMContentLoaded", () => {
   const exampleBtn = document.getElementById("example-btn");
   if (exampleBtn) {
@@ -1346,7 +1346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     populateSelect(list);
   }
 
-  // initial load
+  // initial laden
   refreshList();
 
   // refresh button
@@ -1355,7 +1355,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshList();
   });
 
-  // load button: determine source (select value / input value) and load JSON into rdf-input
+  // laden button: determine source (select value / input value) and laden JSON into rdf-input
   loadBtn?.addEventListener('click', async (e) => {
     e.preventDefault();
     const selectedFilename = select.value;
@@ -1365,19 +1365,19 @@ document.addEventListener("DOMContentLoaded", () => {
       let data = null;
 
       if (selectedFilename) {
-        // load by filename
+        // laden by filename
         const r = await fetch('/api/json-file/' + encodeURIComponent(selectedFilename));
         if (!r.ok) throw new Error('Datei konnte nicht geladen werden');
         data = await r.json();
       } else if (typed) {
-        // try to load by ID first
+        // try to laden by ID first
         const r = await fetch('/api/json-by-id/' + encodeURIComponent(typed));
         if (r.ok) {
           const j = await r.json();
           // endpoint returns { filename, data }
           data = j.data || j;
         } else {
-          // fallback: user typed a filename (with or without .json)
+          // fallback: Benutzer typed a filename (with or without .json)
           let tryName = typed.endsWith('.json') ? typed : typed + '.json';
           const r2 = await fetch('/api/json-file/' + encodeURIComponent(tryName));
           if (r2.ok) data = await r2.json();
@@ -1395,8 +1395,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
       // optional: trigger any parsing/display logic you already have
-      // z.B. parseBtn.click() falls du das automatisch füllen möchtest
-      // document.getElementById('parse-btn')?.click();
+      // z.B. parseBtn.Klick() falls du das automatisch füllen möchtest
+      // document.getElementById('parse-btn')?.Klick();
 
     } catch (err) {
       console.error(err);
@@ -1459,7 +1459,7 @@ async function loadSelectedIntoTextarea() {
 
 
 // ----------------------
-// Save Approval: send the checkbox states to server and update the JSON/status
+// Speichere Genehmigungsstatus: Sende den Zustand der Checkboxen an den Server und aktualisiere das JSON/Statusfeld
 // ----------------------
 async function determineTargetFromUIOrTextarea() {
   // try selects/inputs
@@ -1608,7 +1608,7 @@ async function getUserRole() {
     return null;
   }
 }
-// bind save button if present
+// bind speichern button if present
 document.addEventListener('DOMContentLoaded', function() {
  setTimeout(() => {
     setupApprovalPermissions();
@@ -1712,5 +1712,69 @@ function renderApprovalStatusFromTextarea() {
 // Versuche beim Laden einmal automatisch, falls textarea schon Inhalt hat
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(renderApprovalStatusFromTextarea, 200);
+});
+
+
+
+
+/* --------- Hinzugefügter Initialisierungs-Code (aus HTML entfernt) ---------
+   Dieser Block führt die Authentifizierungsprüfung durch, setzt den Benutzernamen
+   ins UI und hängt Event-Listener an Buttons (Abmelden, PDF-Manager, Template-Wechsel).
+   Kommentare nur auf Deutsch wie gewünscht.
+------------------------------------------------------------------------- */
+document.addEventListener('DOMContentLoaded', function () {
+  // Authentifizierungsprüfung: Anfrage an '/check-auth' senden
+  try {
+    fetch('/check-auth')
+      .then(function(response) { return response.json(); })
+      .then(function(data) {
+        if (!data.authenticated) {
+          // Bei fehlender Authentifizierung: Weiterleitung zur Login-Seite
+          window.location.href = '/login.html';
+        } else {
+          var cu = document.getElementById('currentUser');
+          if (cu) cu.textContent = data.user && data.user.role ? data.user.role : '';
+        }
+      })
+      .catch(function(error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login.html';
+      });
+  } catch (e) {
+    console.error('Fehler bei Authentifizierungsprüfung:', e);
+  }
+
+  // Abmelden-Button: fetch an /Abmelden und Weiterleitung
+  var logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function () {
+      fetch('/logout').then(function() {
+        window.location.href = '/login.html';
+      }).catch(function(e) {
+        console.error('Fehler beim Logout:', e);
+      });
+    });
+  }
+
+  // PDF-Manager Button: Navigation zur Seite
+  var pdfBtn = document.getElementById('pdf-manager-btn');
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', function () {
+      window.location.href = 'pdf-manager.html';
+    });
+  }
+
+// Schaltfläche: Template-Wechsel (ruft switchTemplate() auf, falls vorhanden)
+  var switchBtn = document.getElementById('switch-template-btn');
+  if (switchBtn) {
+    switchBtn.addEventListener('click', function () {
+      if (typeof switchTemplate === 'function') {
+        try { switchTemplate(); } catch (e) { console.error(e); }
+      } else {
+        // Funktion nicht gefunden: nur loggen (keine Wirkung)
+        console.warn('switchTemplate() ist nicht definiert.');
+      }
+    });
+  }
 });
 

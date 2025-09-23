@@ -4,148 +4,22 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>Generator mit JSON</title>
+    <!-- Externe CSS-Datei (keine Inline-Stile im HTML) -->
     <link rel="stylesheet" href="formulare.css" />
-    <style>
-      /* Neue Stile für den Titel */
-      .page-title {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-size: 2.5rem;
-        font-weight: 300;
-        color: #000000;
-        text-align: center;
-        margin: 20px 0;
-        letter-spacing: 1px;
-        text-shadow: 1px 1px 2px rgb(0, 0, 0);
-        position: relative;
-        padding-bottom: 10px;
-      }
-      
-      /* Anpassungen für die Checkboxen */
-      .checkbox-group {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 15px;
-        justify-content: center;
-        padding: 10px;
-        border-radius: 5px;
-        border: 1px solid #000000;
-      }
-      
-      .checkbox-group label {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-weight: 500;
-        cursor: pointer;
-      }
-      
-      .checkbox-group input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-      }
-
-      /* Neue Stile für die obere Steuerleiste */
-      .control-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-        padding: 10px;
-        background-color: #f5f5f5;
-        border-radius: 5px;
-      }
-
-      .user-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .semester-controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-
-      .semester-controls label {
-        white-space: nowrap;
-      }
-
-      .example-buttons {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-
-      .saved-data-controls {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        margin-top: 8px;
-      }
-
-      .select-with-input {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-      }
-
-      .saved-section {
-        margin-top: 12px;
-        border-top: 1px solid #eee;
-        padding-top: 12px;
-      }
-    </style>
   </head>
   <body id="body-root">
     <div class="control-bar">
       <div class="user-info">
         <span>Angemeldet als: <strong id="currentUser"></strong></span>
-        <button onclick="logout()" style="background-color: #f44336; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;">
+        <!-- Kein onclick-Attribut mehr; JS hängt Eventlistener an -->
+        <button id="logout-btn" class="btn btn-danger" type="button">
           Abmelden
         </button>
       </div>
 
-      <script>
-        // Prüfe ob Benutzer angemeldet ist
-        fetch('/check-auth')
-          .then(response => response.json())
-          .then(data => {
-            if (!data.authenticated) {
-              window.location.href = '/login.html';
-            } else {
-              document.getElementById('currentUser').textContent = data.user.role;
-            }
-          })
-          .catch(error => {
-            console.error('Auth check failed:', error);
-            window.location.href = '/login.html';
-          });
-      </script>
-      <script>
-        document.getElementById('currentUser').textContent = '<%= session.user.role %>';
-        function logout() {
-          fetch('/logout')
-            .then(() => window.location.href = '/login.html');
-        }
-      </script>
-      <img
-        alt="HTWK Logo"
-        src="https://upload.wikimedia.org/wikipedia/de/1/16/HTWK-Logo.svg"
-        style="height: 50px"
-      />
-      <button
-        onclick="window.location.href='pdf-manager.html'"
-        style="
-          background-color: #000000;
-          color: white;
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        "
-      >
+      <img alt="HTWK Logo" src="https://upload.wikimedia.org/wikipedia/de/1/16/HTWK-Logo.svg" class="logo" />
+      <!-- Kein onclick; JS behandelt Navigation -->
+      <button id="pdf-manager-btn" class="btn" type="button">
         PDF Manager
       </button>
     </div>
@@ -157,60 +31,27 @@
       <div class="semester-controls">
         <label for="semester-art"> Semester: </label>
         <select id="semester-art">
-          <option disabled="" selected="" value="">-- bitte wählen --</option>
+          <option disabled selected value="">-- bitte wählen --</option>
           <option value="Wintersemester">Wintersemester</option>
           <option value="Sommersemester">Sommersemester</option>
         </select>
         <label for="semester-jahr"> Jahr(e): </label>
-        <input
-          id="semester-jahr"
-          style="width: 80px"
-          type="text"
-          value="2025/26"
-        />
+        <input id="semester-jahr" type="text" value="2025/26" />
         <label for="planungswochen">
           Planungswochen:
         </label>
-        <input
-          id="planungswochen"
-          style="width: 80px"
-          type="text"
-          value="42–58"
-        />
+        <input id="planungswochen" type="text" value="42–58" />
       </div>
 
       <div class="input-section">
         <h2>JSON Eingabe</h2>
         <p>Geben Sie Ihre Daten im JSON Format ein:</p>
         
-        <!-- Beispiel-Buttons mit Wechsel-Button als erstes -->
+        <!-- Beispiel-Buttons mit Klassen statt Inline-Stilen -->
         <div class="example-buttons">
-          <button
-            id="switch-template-btn"
-            onclick="switchTemplate()"
-            style="
-              background: #007bff;
-              color: white;
-              padding: 10px 15px;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-            "
-          >
-            Wechsel zu Dozentenblatt
-          </button>
-          <button
-            id="example-btn"
-            style="background-color: #6c757d;"
-          >
-            Beispiel Zuarbeitsblatt
-          </button>
-          <button
-            id="example-dozentenblatt-btn"
-            style="background-color: #6c757d;"
-          >
-            Beispiel Dozentenblatt
-          </button>
+          <button id="switch-template-btn" class="btn btn-primary" type="button">Wechsel zu Dozentenblatt</button>
+          <button id="example-btn" class="btn btn-secondary" type="button">Beispiel Zuarbeitsblatt</button>
+          <button id="example-dozentenblatt-btn" class="btn btn-secondary" type="button">Beispiel Dozentenblatt</button>
         </div>
 
         <textarea id="rdf-input" placeholder='Beispiel:
@@ -270,11 +111,9 @@
 }'></textarea>
 
         <div class="saved-section">
-          <h3 style="margin: 6px 0">Gespeicherte JSON-Daten laden</h3>
+          <h3>Daten (.json)</h3>
 
-          <label for="saved-dozenten" style="display: block; margin-top: 6px;">
-            Daten (.json)
-          </label>
+          <label for="saved-dozenten" style="display: block; margin-top: 6px;">Daten (.json)</label>
           
           <div class="select-with-input">
             <select id="saved-dozenten">
@@ -284,25 +123,22 @@
             <input type="text" id="dozenten-input" placeholder="ID eingeben">
             
             <div class="saved-data-controls">
-              <button id="load-saved-btn" type="button">
-                Auswahl in Eingabe übernehmen
-              </button>
-              <button id="refresh-saved-btn" type="button" class="secondary">
-                Liste neu laden
-              </button>
+              <button id="load-saved-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
+              <button id="refresh-saved-btn" type="button" class="btn">Liste neu laden</button>
             </div>
           </div>
         </div>
 
-        <button id="parse-btn">Formular aus Eingabe füllen</button>
-        <button id="generate-pdf">PDF generieren</button>
-        <button id="reset-form">Eingabe zurücksetzen</button>
+
+        <button id="parse-btn" class="btn">Formular aus Eingabe füllen</button>
+        <button id="generate-pdf" class="btn">PDF generieren</button>
+        <button id="reset-form" class="btn">Eingabe zurücksetzen</button>
       </div>
       
       <div class="output-section">
         <h2>Vorschau</h2>
         <!-- Checkboxen für Studienamt, Dekan, Studiendekan -->
-        <div class="checkbox-group" id="approval-area">
+        <div class="checkbox-group control" id="approval-area">
           <label>
             <input type="checkbox" id="checkbox-studienamt">
             Studienamt
@@ -317,7 +153,7 @@
           </label>
 
           <!-- Neuer Button zum Speichern der Auswahl -->
-          <button id="save-approval-btn" type="button" style="margin-left:12px; padding:6px 10px;">Speichern</button>
+          <button id="save-approval-btn" type="button" class="btn">Speichern</button>
         </div>
         
         <div id="approval-status" style="margin-top:8px;font-size:13px;color:#374151"></div>
@@ -327,6 +163,8 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Externes JS, alle Inline-Skripte entfernt -->
+
     <script src="formulare.js" defer></script>
   </body>
 </html>
