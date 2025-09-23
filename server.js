@@ -221,6 +221,28 @@ async function init() {
       }
       next();
     }
+    // Middleware: Check if user has permission to modify approvals
+function checkApprovalPermission(req, res, next) {
+  const userRole = req.session.user?.role;
+  const allowedRoles = ['Dekan', 'Studienamt', 'Studiendekan'];
+  
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    return res.status(403).json({ error: 'Unzureichende Berechtigung' });
+  }
+  
+  // User can only modify their own role's approval
+  const { approvals } = req.body || {};
+  if (approvals) {
+    // Create a new approvals object with only the user's role
+    const filteredApprovals = {};
+    filteredApprovals[userRole] = approvals[userRole] === 'ja' ? 'ja' : 'nein';
+    
+    // Keep existing approvals for other roles (will be preserved on server side)
+    req.body.approvals = filteredApprovals;
+  }
+  
+  next();
+}
 
     // GET / - Root-Route zur Login-Umleitung
     app.get('/', (req, res) => {
@@ -600,134 +622,136 @@ async function init() {
     // --- NEUER ENDPOINT: Save approval (Speichert die Checkbox-Auswahl in die JSON-Datei) ---
     // POST /api/save-approval
     // payload: { filename?: string, id?: string, approvals: { Dekan:'ja'|'nein', Studienamt:'ja'|'nein', Studiendekan:'ja'|'nein' } }
-    app.post('/api/save-approval', requireAuth, async (req, res) => {
-      try {
-        const { filename, id, approvals } = req.body || {};
-        if (!approvals || typeof approvals !== 'object') return res.status(400).json({ error: 'approvals required' });
+   // POST /api/save-approval - mit Berechtigungsprüfung
+app.post('/api/save-approval', requireAuth, checkApprovalPermission, async (req, res) => {
+  try {
+    const { filename, id, approvals } = req.body || {};
+    if (!approvals || typeof approvals !== 'object') return res.status(400).json({ error: 'approvals required' });
 
-        // sanitize approvals (only those keys)
-        const clean = {
-          Dekan: approvals.Dekan === 'ja' ? 'ja' : 'nein',
-          Studienamt: approvals.Studienamt === 'ja' ? 'ja' : 'nein',
-          Studiendekan: approvals.Studiendekan === 'ja' ? 'ja' : 'nein'
-        };
+    // Die approvals wurden bereits durch die Middleware gefiltert
+    const clean = approvals;
 
-        // determine target file
-        let targetFile = null;
+    // Bestimme Ziel-Datei (existierender Code bleibt gleich)
+    let targetFile = null;
 
-        if (filename && isJsonFile(filename)) {
-          const safe = path.basename(filename);
-          const full = path.join(DATA_DIR, safe);
-          if (fs.existsSync(full)) targetFile = safe;
-          else return res.status(404).json({ error: 'Datei nicht gefunden' });
-        }
+    if (filename && isJsonFile(filename)) {
+      const safe = path.basename(filename);
+      const full = path.join(DATA_DIR, safe);
+      if (fs.existsSync(full)) targetFile = safe;
+      else return res.status(404).json({ error: 'Datei nicht gefunden' });
+    }
 
-        // if filename not provided, try lookup by id
-        if (!targetFile && id) {
-          if (!fs.existsSync(DATA_DIR)) return res.status(404).json({ error: 'Data directory not found' });
-          const files = await fsPromises.readdir(DATA_DIR);
-          const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
-          for (const f of jsonFiles) {
-            try {
-              const content = await readJsonFileSafe(f);
-              // quick id checks (same logic as /api/json-by-id)
-              const candidates = [];
-              if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
-              if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) candidates.push(String(content.dozent.ID || content.dozent.id || content.dozent.nachname));
-              if (content && content.dozenten && Array.isArray(content.dozenten)) {
-                for (const d of content.dozenten) {
-                  if (d && (d.ID || d.id || d.nachname)) candidates.push(String(d.ID || d.id || d.nachname));
-                }
-              }
-              if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) candidates.push(String(content.modul.ID || content.modul.id || content.modul.modulnr));
-              if (content && content.module && Array.isArray(content.module)) {
-                for (const m of content.module) {
-                  if (m && (m.ID || m.id || m.modulnr)) candidates.push(String(m.ID || m.id || m.modulnr));
-                }
-              }
-              candidates.push(path.basename(f, '.json'));
-
-              for (const cand of candidates) {
-                if (!cand) continue;
-                if (String(cand).trim() === String(id).trim()) {
-                  targetFile = f;
-                  break;
-                }
-              }
-              if (targetFile) break;
-            } catch (err) {
-              continue;
+    // Wenn filename nicht angegeben, versuche Lookup by id (existierender Code)
+    if (!targetFile && id) {
+      if (!fs.existsSync(DATA_DIR)) return res.status(404).json({ error: 'Data directory not found' });
+      const files = await fsPromises.readdir(DATA_DIR);
+      const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+      for (const f of jsonFiles) {
+        try {
+          const content = await readJsonFileSafe(f);
+          const candidates = [];
+          if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
+          if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) candidates.push(String(content.dozent.ID || content.dozent.id || content.dozent.nachname));
+          if (content && content.dozenten && Array.isArray(content.dozenten)) {
+            for (const d of content.dozenten) {
+              if (d && (d.ID || d.id || d.nachname)) candidates.push(String(d.ID || d.id || d.nachname));
             }
           }
-        }
-
-        if (!targetFile) {
-          return res.status(400).json({ error: 'Konnte Zieldatei nicht bestimmen. Bitte filename oder id angeben.' });
-        }
-
-        // backup file before modifying
-        await backupDataFile(targetFile);
-
-        // read content, update approvals
-        const content = await readJsonFileSafe(targetFile);
-
-        let written = false;
-        // If id provided, try to find matching nested entry and set approvals there
-        if (id && content) {
-          // dozenten array
-          if (!written && content.dozenten && Array.isArray(content.dozenten)) {
-            for (let d of content.dozenten) {
-              if (d && (String(d.ID) === String(id) || String(d.id) === String(id) || String(d.nachname) === String(id))) {
-                d.approvals = clean;
-                written = true;
-                break;
-              }
+          if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) candidates.push(String(content.modul.ID || content.modul.id || content.modul.modulnr));
+          if (content && content.module && Array.isArray(content.module)) {
+            for (const m of content.module) {
+              if (m && (m.ID || m.id || m.modulnr)) candidates.push(String(m.ID || m.id || m.modulnr));
             }
           }
-          // singular dozent
-          if (!written && content.dozent && typeof content.dozent === 'object') {
-            const d = content.dozent;
-            if (d && (String(d.ID) === String(id) || String(d.id) === String(id) || String(d.nachname) === String(id))) {
-              content.dozent.approvals = clean;
-              written = true;
+          candidates.push(path.basename(f, '.json'));
+
+          for (const cand of candidates) {
+            if (!cand) continue;
+            if (String(cand).trim() === String(id).trim()) {
+              targetFile = f;
+              break;
             }
           }
-          // module array
-          if (!written && content.module && Array.isArray(content.module)) {
-            for (let m of content.module) {
-              if (m && (String(m.ID) === String(id) || String(m.id) === String(id) || String(m.modulnr) === String(id))) {
-                m.approvals = clean;
-                written = true;
-                break;
-              }
-            }
-          }
-          // singular modul
-          if (!written && content.modul && typeof content.modul === 'object') {
-            const m = content.modul;
-            if (m && (String(m.ID) === String(id) || String(m.id) === String(id) || String(m.modulnr) === String(id))) {
-              content.modul.approvals = clean;
-              written = true;
-            }
-          }
+          if (targetFile) break;
+        } catch (err) {
+          continue;
         }
-
-        // fallback: write top-level approvals if nothing matched
-        if (!written) {
-          content.approvals = clean;
-        }
-
-        // write back to disk
-        const fullPath = path.join(DATA_DIR, targetFile);
-        await writeJsonSecure(fullPath, content);
-
-        res.json({ success: true, file: targetFile });
-      } catch (err) {
-        console.error('save-approval error', err);
-        res.status(500).json({ error: 'Fehler beim Speichern' });
       }
-    });
+    }
 
+    if (!targetFile) {
+      return res.status(400).json({ error: 'Konnte Zieldatei nicht bestimmen. Bitte filename oder id angeben.' });
+    }
+
+    // Backup file before modifying
+    await backupDataFile(targetFile);
+
+    // Read content, update approvals
+    const content = await readJsonFileSafe(targetFile);
+
+    let written = false;
+    const userRole = req.session.user.role;
+    
+    // If id provided, try to find matching nested entry and set approvals there
+    if (id && content) {
+      // dozenten array
+      if (!written && content.dozenten && Array.isArray(content.dozenten)) {
+        for (let d of content.dozenten) {
+          if (d && (String(d.ID) === String(id) || String(d.id) === String(id) || String(d.nachname) === String(id))) {
+            if (!d.approvals) d.approvals = {};
+            d.approvals[userRole] = clean[userRole];
+            written = true;
+            break;
+          }
+        }
+      }
+      // singular dozent
+      if (!written && content.dozent && typeof content.dozent === 'object') {
+        const d = content.dozent;
+        if (d && (String(d.ID) === String(id) || String(d.id) === String(id) || String(d.nachname) === String(id))) {
+          if (!content.dozent.approvals) content.dozent.approvals = {};
+          content.dozent.approvals[userRole] = clean[userRole];
+          written = true;
+        }
+      }
+      // module array
+      if (!written && content.module && Array.isArray(content.module)) {
+        for (let m of content.module) {
+          if (m && (String(m.ID) === String(id) || String(m.id) === String(id) || String(m.modulnr) === String(id))) {
+            if (!m.approvals) m.approvals = {};
+            m.approvals[userRole] = clean[userRole];
+            written = true;
+            break;
+          }
+        }
+      }
+      // singular modul
+      if (!written && content.modul && typeof content.modul === 'object') {
+        const m = content.modul;
+        if (m && (String(m.ID) === String(id) || String(m.id) === String(id) || String(m.modulnr) === String(id))) {
+          if (!content.modul.approvals) content.modul.approvals = {};
+          content.modul.approvals[userRole] = clean[userRole];
+          written = true;
+        }
+      }
+    }
+
+    // Fallback: write top-level approvals if nothing matched
+    if (!written) {
+      if (!content.approvals) content.approvals = {};
+      content.approvals[userRole] = clean[userRole];
+    }
+
+    // Write back to disk
+    const fullPath = path.join(DATA_DIR, targetFile);
+    await writeJsonSecure(fullPath, content);
+
+    res.json({ success: true, file: targetFile, role: userRole });
+  } catch (err) {
+    console.error('save-approval error', err);
+    res.status(500).json({ error: 'Fehler beim Speichern' });
+  }
+});
     // start server
     app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT}`));
 
