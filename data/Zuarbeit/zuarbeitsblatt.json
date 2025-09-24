@@ -51,5 +51,8 @@
       "gruppen": "1-5",
       "erlaeuterung": "Praktikum in Einzelgruppen, wöchentlich wechselnd: Gruppe 1+2 (KW42,44,...), Gruppe 3+4 (KW43,45,...), Gruppe 5 (flexibel)"
     }
+  },
+  "approvals": {
+    "Dekan": "ja"
   }
 }

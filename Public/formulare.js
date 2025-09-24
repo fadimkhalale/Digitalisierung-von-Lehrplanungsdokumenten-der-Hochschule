@@ -1311,100 +1311,146 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // frontend: dynamisches Laden / Übernehmen gespeicherter JSONs
-(async function initSavedJsonUI() {
-  const select = document.getElementById('saved-dozenten');
-  const input = document.getElementById('dozenten-input');
-  const loadBtn = document.getElementById('load-saved-btn');
-  const refreshBtn = document.getElementById('refresh-saved-btn');
-  const rdfTextarea = document.getElementById('rdf-input');
+// Frontend: Separate UI für Zuarbeit und Dozenten
+// Frontend: Separate UI für Zuarbeit und Dozenten
+(function initSeparateJsonUIs() {
+  // Zuarbeit UI
+  initJsonUI(
+    'saved-zuarbeit',
+    'zuarbeit-input', 
+    'load-zuarbeit-btn',
+    'refresh-zuarbeit-btn',
+    'zuarbeit'
+  );
 
-  async function fetchList() {
-    try {
-      const r = await fetch('/api/json-list');
-      const list = await r.json();
-      return list;
-    } catch (err) {
-      console.error('Fehler beim Laden der Liste', err);
-      return [];
-    }
-  }
+  // Dozenten UI
+  initJsonUI(
+    'saved-dozenten',
+    'dozenten-input',
+    'load-dozenten-btn', 
+    'refresh-dozenten-btn',
+    'dozenten'
+  );
 
-  function populateSelect(list) {
-    // clear existing options except the first placeholder
-    select.innerHTML = '<option value="">-- keine ausgewählt --</option>';
-    for (const item of list) {
-      // use ID as shown name (as requested) but keep filename as value
-      const opt = document.createElement('option');
-      opt.value = item.filename;
-      opt.textContent = item.id;
-      select.appendChild(opt);
-    }
-  }
+  function initJsonUI(selectId, inputId, loadBtnId, refreshBtnId, type) {
+    const select = document.getElementById(selectId);
+    const input = document.getElementById(inputId);
+    const loadBtn = document.getElementById(loadBtnId);
+    const refreshBtn = document.getElementById(refreshBtnId);
+    const rdfTextarea = document.getElementById('rdf-input');
 
-  async function refreshList() {
-    const list = await fetchList();
-    populateSelect(list);
-  }
-
-  // initial laden
-  refreshList();
-
-  // refresh button
-  refreshBtn?.addEventListener('click', (e) => {
-    e.preventDefault();
-    refreshList();
-  });
-
-  // laden button: determine source (select value / input value) and laden JSON into rdf-input
-  loadBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const selectedFilename = select.value;
-    const typed = (input.value || '').trim();
-
-    try {
-      let data = null;
-
-      if (selectedFilename) {
-        // laden by filename
-        const r = await fetch('/api/json-file/' + encodeURIComponent(selectedFilename));
-        if (!r.ok) throw new Error('Datei konnte nicht geladen werden');
-        data = await r.json();
-      } else if (typed) {
-        // try to laden by ID first
-        const r = await fetch('/api/json-by-id/' + encodeURIComponent(typed));
-        if (r.ok) {
-          const j = await r.json();
-          // endpoint returns { filename, data }
-          data = j.data || j;
-        } else {
-          // fallback: Benutzer typed a filename (with or without .json)
-          let tryName = typed.endsWith('.json') ? typed : typed + '.json';
-          const r2 = await fetch('/api/json-file/' + encodeURIComponent(tryName));
-          if (r2.ok) data = await r2.json();
-          else throw new Error('Keine passende Datei/ID gefunden');
-        }
-      } else {
-        alert('Bitte eine Datei auswählen oder eine ID eingeben.');
-        return;
+    async function fetchList() {
+      try {
+        const r = await fetch(`/api/json-list/${type}`);
+        const list = await r.json();
+        return list;
+      } catch (err) {
+        console.error(`Fehler beim Laden der ${type} Liste`, err);
+        return [];
       }
-
-      // put pretty-printed JSON into textarea
-      rdfTextarea.value = JSON.stringify(data, null, 2);
-      // update approval status immediately after loading JSON into textarea
-      try { if (typeof renderApprovalStatusFromObject === 'function') renderApprovalStatusFromObject(data); } catch(e) { console.warn('renderApprovalStatusFromObject error', e); }
-
-
-      // optional: trigger any parsing/display logic you already have
-      // z.B. parseBtn.Klick() falls du das automatisch füllen möchtest
-      // document.getElementById('parse-btn')?.Klick();
-
-    } catch (err) {
-      console.error(err);
-      alert('Fehler beim Laden der JSON: ' + (err.message || err));
     }
-  });
-})();
 
+    function populateSelect(list) {
+      select.innerHTML = '<option value="">-- keine ausgewählt --</option>';
+      for (const item of list) {
+        const opt = document.createElement('option');
+        opt.value = item.filename;
+        opt.textContent = item.id;
+        if (item._error) opt.title = 'Fehlerhaftes JSON';
+        select.appendChild(opt);
+      }
+    }
+
+    async function refreshList() {
+      const list = await fetchList();
+      populateSelect(list);
+    }
+
+    // Initial laden
+    refreshList();
+
+    // Refresh Button
+    refreshBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      refreshList();
+    });
+
+    // Laden Button - NEU: Sucht nur im entsprechenden Unterordner
+    loadBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const selectedFilename = select.value;
+      const typed = (input.value || '').trim();
+
+      try {
+        let data = null;
+
+        if (selectedFilename) {
+          // Laden by filename aus dem entsprechenden Unterordner
+          const r = await fetch(`/api/json-file/${type}/` + encodeURIComponent(selectedFilename));
+          if (!r.ok) throw new Error('Datei konnte nicht geladen werden');
+          data = await r.json();
+        } else if (typed) {
+          // NEU: Suche nur im entsprechenden Unterordner
+          const list = await fetchList();
+          const foundItem = list.find(item => 
+            item.id.toLowerCase() === typed.toLowerCase() ||
+            item.filename.toLowerCase() === typed.toLowerCase() ||
+            item.filename.toLowerCase() === (typed + '.json').toLowerCase()
+          );
+
+          if (foundItem) {
+            const r = await fetch(`/api/json-file/${type}/` + encodeURIComponent(foundItem.filename));
+            if (!r.ok) throw new Error('Datei konnte nicht geladen werden');
+            data = await r.json();
+          } else {
+            // Fallback: Versuche direkten Dateizugriff
+            let tryName = typed.endsWith('.json') ? typed : typed + '.json';
+            const r = await fetch(`/api/json-file/${type}/` + encodeURIComponent(tryName));
+            if (r.ok) {
+              data = await r.json();
+            } else {
+              throw new Error('Keine passende Datei/ID im ' + type + ' Ordner gefunden');
+            }
+          }
+        } else {
+          alert('Bitte eine Datei auswählen oder eine ID eingeben.');
+          return;
+        }
+
+        // JSON in Textarea einfügen
+        rdfTextarea.value = JSON.stringify(data, null, 2);
+        
+        // Automatisch Template wechseln basierend auf Typ
+        if (typeof switchTemplate === 'function') {
+          if (type === 'zuarbeit' && window.currentTemplate !== 'zuarbeit') {
+            switchTemplate();
+          } else if (type === 'dozenten' && window.currentTemplate !== 'dozent') {
+            switchTemplate();
+          }
+        }
+
+        // Approval Status aktualisieren
+        try { 
+          if (typeof renderApprovalStatusFromObject === 'function') 
+            renderApprovalStatusFromObject(data); 
+        } catch(e) { 
+          console.warn('renderApprovalStatusFromObject error', e); 
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Fehler beim Laden der JSON: ' + (err.message || err));
+      }
+    });
+
+    // NEU: Enter-Taste in Eingabefeld unterstützen
+    input?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadBtn.click();
+      }
+    });
+  }
+})();
 
 async function loadSelectedIntoTextarea() {
   const dozentSel = document.getElementById("saved-dozenten");
@@ -1462,58 +1508,77 @@ async function loadSelectedIntoTextarea() {
 // Speichere Genehmigungsstatus: Sende den Zustand der Checkboxen an den Server und aktualisiere das JSON/Statusfeld
 // ----------------------
 async function determineTargetFromUIOrTextarea() {
-  // try selects/inputs
+  // Bestimme zuerst den Typ (Zuarbeit oder Dozenten) basierend auf der Auswahl
   const selDoz = document.getElementById('saved-dozenten');
   const selZu = document.getElementById('saved-zuarbeit');
   const inputDoz = document.getElementById('dozenten-input');
   const inputZu = document.getElementById('zuarbeit-input');
 
-  const selected = (selDoz && selDoz.value) ? selDoz.value : (selZu && selZu.value) ? selZu.value : null;
-  const typed = (inputDoz && inputDoz.value) ? inputDoz.value.trim() : (inputZu && inputZu.value) ? inputZu.value.trim() : null;
+  let type = null;
+  let selectedFilename = null;
+  let typed = null;
 
-  if (selected) {
-    // selected value is filename in populateSelect implementation
-    return { filename: selected, id: null };
+  if (selDoz && selDoz.value) {
+    type = 'dozenten';
+    selectedFilename = selDoz.value;
+  } else if (selZu && selZu.value) {
+    type = 'zuarbeit';
+    selectedFilename = selZu.value;
+  } else if (inputDoz && inputDoz.value.trim()) {
+    type = 'dozenten';
+    typed = inputDoz.value.trim();
+  } else if (inputZu && inputZu.value.trim()) {
+    type = 'zuarbeit';
+    typed = inputZu.value.trim();
   }
+
+  if (selectedFilename) {
+    return { filename: selectedFilename, type: type, id: null };
+  }
+
   if (typed) {
-    // could be id or filename
-    // try json-by-id endpoint to resolve
+    // Suche in den Unterordnern
     try {
-      const r = await fetch('/api/json-by-id/' + encodeURIComponent(typed));
+      const r = await fetch(`/api/json-list/${type}`);
       if (r.ok) {
-        const j = await r.json();
-        return { filename: j.filename, id: typed };
-      } else {
-        // fallback: treat as filename
-        const maybe = typed.endsWith('.json') ? typed : (typed + '.json');
-        return { filename: maybe, id: null };
+        const list = await r.json();
+        const foundItem = list.find(item => 
+          item.id.toLowerCase() === typed.toLowerCase() ||
+          item.filename.toLowerCase() === typed.toLowerCase() ||
+          item.filename.toLowerCase() === (typed + '.json').toLowerCase()
+        );
+
+        if (foundItem) {
+          return { filename: foundItem.filename, type: type, id: typed };
+        }
       }
     } catch (e) {
-      const maybe = typed.endsWith('.json') ? typed : (typed + '.json');
-      return { filename: maybe, id: null };
+      console.warn('Suche in Unterordner fehlgeschlagen', e);
     }
+    
+    return { filename: null, type: type, id: typed };
   }
 
-  // last resort: parse textarea to find id or just write top-level approvals
+  // Fallback: parse textarea
   const ta = document.getElementById('rdf-input');
   if (ta && ta.value.trim()) {
     try {
       const obj = JSON.parse(ta.value);
-      // try top level id fields
-      if (obj && (obj.ID || obj.id)) return { filename: null, id: obj.ID || obj.id };
-      if (obj.dozent && (obj.dozent.ID || obj.dozent.id || obj.dozent.nachname)) return { filename: null, id: obj.dozent.ID || obj.dozent.id || obj.dozent.nachname };
-      if (obj.modul && (obj.modul.ID || obj.modul.id || obj.modul.modulnr)) return { filename: null, id: obj.modul.ID || obj.modul.id || obj.modul.modulnr };
+      if (obj && (obj.ID || obj.id)) return { filename: null, type: null, id: obj.ID || obj.id };
+      if (obj.dozent && (obj.dozent.ID || obj.dozent.id || obj.dozent.nachname)) 
+        return { filename: null, type: 'dozenten', id: obj.dozent.ID || obj.dozent.id || obj.dozent.nachname };
+      if (obj.modul && (obj.modul.ID || obj.modul.id || obj.modul.modulnr)) 
+        return { filename: null, type: 'zuarbeit', id: obj.modul.ID || obj.modul.id || obj.modul.modulnr };
     } catch (e) { /* ignore */ }
   }
 
-  return { filename: null, id: null };
+  return { filename: null, type: null, id: null };
 }
 
 
 async function saveApprovalToServer() {
   try {
-    const userRole = await getUserRole(); // Neue Funktion zur Rollenabfrage
-    
+    const userRole = await getUserRole();
     if (!userRole) {
       alert('Fehler: Benutzerrolle konnte nicht ermittelt werden.');
       return;
@@ -1542,27 +1607,19 @@ async function saveApprovalToServer() {
       [userRole]: userCheckbox.checked ? 'ja' : 'nein'
     };
 
-    // Bestimme Ziel (existierender Code)
+    
+    // Bestimme Ziel MIT Typ-Information
     let target = await determineTargetFromUIOrTextarea();
 
-    // Fallback-Logik (existierender Code)
-    if (!target || (!target.filename && !target.id)) {
-      const ta = document.getElementById('rdf-input');
-      if (ta && ta.value.trim()) {
-        try {
-          const parsed = JSON.parse(ta.value);
-          // ... (existierender Code)
-        } catch (e) { /* ignore */ }
-      }
-    }
+    // Füge Typ-Information zur Payload hinzu
+    const payload = { 
+      filename: target.filename, 
+      id: target.id, 
+      type: target.type,  // Neue: 'zuarbeit' oder 'dozenten'
+      approvals 
+    };
 
-    if (!target || (!target.filename && !target.id)) {
-      return alert('Konnte Zieldatei nicht bestimmen. Wähle eine gespeicherte Datei aus oder gib eine ID ein.');
-    }
-
-    const payload = { filename: target.filename, id: target.id, approvals };
-
-    console.log('Saving approval for role:', userRole, payload);
+    console.log('Saving approval with payload:', payload);
 
     const r = await fetch('/api/save-approval', {
       method: 'POST',

@@ -111,8 +111,14 @@ function escapeHtml(str) {
 // validate filename is a plain filename ending with .json and no traversal
 function isJsonFile(filename) {
   if (typeof filename !== 'string') return false;
-  if (!filename.toLowerCase().endsWith('.json')) return false;
-  if (filename.includes('..') || path.isAbsolute(filename)) return false;
+  
+  // Erlaube Pfade mit Unterordnern, aber keine Directory Traversal
+  const normalized = path.normalize(filename);
+  if (normalized.includes('..') || path.isAbsolute(normalized)) return false;
+  
+  // Prüfe ob es mit .json endet
+  if (!normalized.toLowerCase().endsWith('.json')) return false;
+  
   return true;
 }
 
@@ -536,6 +542,118 @@ function checkApprovalPermission(req, res, next) {
       }
     });
 
+    // GET /api/json-list/zuarbeit - Liste aller JSONs im Zuarbeit-Ordner
+app.get('/api/json-list/zuarbeit', requireAuth, async (req, res) => {
+  try {
+    const zuarbeitDir = path.join(DATA_DIR, 'Zuarbeit');
+    if (!fs.existsSync(zuarbeitDir)) return res.json([]);
+    
+    const files = await fsPromises.readdir(zuarbeitDir);
+    const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+    const results = [];
+    
+    for (const f of jsonFiles) {
+      try {
+        const content = await readJson(path.join(zuarbeitDir, f));
+        let id = null;
+        
+        // Extrahiere ID aus verschiedenen Stellen
+        if (content && (content.ID || content.id)) id = content.ID || content.id;
+        else if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) {
+          id = content.modul.ID || content.modul.id || content.modul.modulnr;
+        }
+        else if (content && content.module && Array.isArray(content.module) && content.module.length > 0) {
+          id = content.module[0].ID || content.module[0].id || content.module[0].modulnr;
+        }
+        
+        if (!id) id = path.basename(f, '.json');
+        results.push({ id: String(id), filename: f });
+      } catch (err) {
+        results.push({ id: path.basename(f, '.json'), filename: f, _error: 'invalid json' });
+      }
+    }
+    
+    results.sort((a,b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+    res.json(results);
+  } catch (err) {
+    console.error('Error listing Zuarbeit JSON files', err);
+    res.status(500).json({ error: 'Failed to list Zuarbeit JSON files' });
+  }
+});
+
+// GET /api/json-list/dozenten - Liste aller JSONs im Dozenten-Ordner
+app.get('/api/json-list/dozenten', requireAuth, async (req, res) => {
+  try {
+    const dozentenDir = path.join(DATA_DIR, 'Dozenten');
+    if (!fs.existsSync(dozentenDir)) return res.json([]);
+    
+    const files = await fsPromises.readdir(dozentenDir);
+    const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+    const results = [];
+    
+    for (const f of jsonFiles) {
+      try {
+        const content = await readJson(path.join(dozentenDir, f));
+        let id = null;
+        
+        // Extrahiere ID aus verschiedenen Stellen
+        if (content && (content.ID || content.id)) id = content.ID || content.id;
+        else if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) {
+          id = content.dozent.ID || content.dozent.id || content.dozent.nachname;
+        }
+        else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0) {
+          id = content.dozenten[0].ID || content.dozenten[0].id || content.dozenten[0].nachname;
+        }
+        
+        if (!id) id = path.basename(f, '.json');
+        results.push({ id: String(id), filename: f });
+      } catch (err) {
+        results.push({ id: path.basename(f, '.json'), filename: f, _error: 'invalid json' });
+      }
+    }
+    
+    results.sort((a,b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+    res.json(results);
+  } catch (err) {
+    console.error('Error listing Dozenten JSON files', err);
+    res.status(500).json({ error: 'Failed to list Dozenten JSON files' });
+  }
+});
+
+// GET /api/json-file/zuarbeit/:filename - Lädt JSON aus Zuarbeit-Ordner
+app.get('/api/json-file/zuarbeit/:filename', requireAuth, async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    if (!isJsonFile(filename)) return res.status(400).json({ error: 'Invalid filename' });
+
+    const filepath = path.join(DATA_DIR, 'Zuarbeit', filename);
+    if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'File not found' });
+
+    const raw = await fsPromises.readFile(filepath, 'utf8');
+    res.type('application/json').send(raw);
+  } catch (err) {
+    console.error('Error reading Zuarbeit json-file', err);
+    res.status(500).json({ error: 'Failed to read file' });
+  }
+});
+
+// GET /api/json-file/dozenten/:filename - Lädt JSON aus Dozenten-Ordner
+app.get('/api/json-file/dozenten/:filename', requireAuth, async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    if (!isJsonFile(filename)) return res.status(400).json({ error: 'Invalid filename' });
+
+    const filepath = path.join(DATA_DIR, 'Dozenten', filename);
+    if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'File not found' });
+
+    const raw = await fsPromises.readFile(filepath, 'utf8');
+    res.type('application/json').send(raw);
+  } catch (err) {
+    console.error('Error reading Dozenten json-file', err);
+    res.status(500).json({ error: 'Failed to read file' });
+  }
+});
+
     // GET /api/json-file/:filename  (loads raw json by filename)
     app.get('/api/json-file/:filename', requireAuth, async (req, res) => {
       try {
@@ -623,58 +741,78 @@ function checkApprovalPermission(req, res, next) {
     // POST /api/save-approval
     // payload: { filename?: string, id?: string, approvals: { Dekan:'ja'|'nein', Studienamt:'ja'|'nein', Studiendekan:'ja'|'nein' } }
    // POST /api/save-approval - mit Berechtigungsprüfung
+// POST /api/save-approval - ANPASSUNG für Unterordner
 app.post('/api/save-approval', requireAuth, checkApprovalPermission, async (req, res) => {
   try {
     const { filename, id, approvals } = req.body || {};
     if (!approvals || typeof approvals !== 'object') return res.status(400).json({ error: 'approvals required' });
 
-    // Die approvals wurden bereits durch die Middleware gefiltert
     const clean = approvals;
-
-    // Bestimme Ziel-Datei (existierender Code bleibt gleich)
     let targetFile = null;
+    let targetSubdir = null;
 
+    // Bestimme Ziel-Datei UND Unterordner
     if (filename && isJsonFile(filename)) {
       const safe = path.basename(filename);
-      const full = path.join(DATA_DIR, safe);
-      if (fs.existsSync(full)) targetFile = safe;
-      else return res.status(404).json({ error: 'Datei nicht gefunden' });
+      
+      // Prüfe in welchem Unterordner die Datei existiert
+      const subdirs = ['Zuarbeit', 'Dozenten'];
+      for (const subdir of subdirs) {
+        const full = path.join(DATA_DIR, subdir, safe);
+        if (fs.existsSync(full)) {
+          targetFile = safe;
+          targetSubdir = subdir;
+          break;
+        }
+      }
+      
+      if (!targetFile) return res.status(404).json({ error: 'Datei nicht gefunden' });
     }
 
-    // Wenn filename nicht angegeben, versuche Lookup by id (existierender Code)
+    // Wenn filename nicht angegeben, versuche Lookup by id in Unterordnern
     if (!targetFile && id) {
       if (!fs.existsSync(DATA_DIR)) return res.status(404).json({ error: 'Data directory not found' });
-      const files = await fsPromises.readdir(DATA_DIR);
-      const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
-      for (const f of jsonFiles) {
-        try {
-          const content = await readJsonFileSafe(f);
-          const candidates = [];
-          if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
-          if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) candidates.push(String(content.dozent.ID || content.dozent.id || content.dozent.nachname));
-          if (content && content.dozenten && Array.isArray(content.dozenten)) {
-            for (const d of content.dozenten) {
-              if (d && (d.ID || d.id || d.nachname)) candidates.push(String(d.ID || d.id || d.nachname));
+      
+      const subdirs = ['Zuarbeit', 'Dozenten'];
+      fileSearch: for (const subdir of subdirs) {
+        const subdirPath = path.join(DATA_DIR, subdir);
+        if (!fs.existsSync(subdirPath)) continue;
+        
+        const files = await fsPromises.readdir(subdirPath);
+        const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+        
+        for (const f of jsonFiles) {
+          try {
+            const content = await readJson(path.join(subdirPath, f));
+            const candidates = [];
+            if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
+            if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) 
+              candidates.push(String(content.dozent.ID || content.dozent.id || content.dozent.nachname));
+            if (content && content.dozenten && Array.isArray(content.dozenten)) {
+              for (const d of content.dozenten) {
+                if (d && (d.ID || d.id || d.nachname)) candidates.push(String(d.ID || d.id || d.nachname));
+              }
             }
-          }
-          if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) candidates.push(String(content.modul.ID || content.modul.id || content.modul.modulnr));
-          if (content && content.module && Array.isArray(content.module)) {
-            for (const m of content.module) {
-              if (m && (m.ID || m.id || m.modulnr)) candidates.push(String(m.ID || m.id || m.modulnr));
+            if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) 
+              candidates.push(String(content.modul.ID || content.modul.id || content.modul.modulnr));
+            if (content && content.module && Array.isArray(content.module)) {
+              for (const m of content.module) {
+                if (m && (m.ID || m.id || m.modulnr)) candidates.push(String(m.ID || m.id || m.modulnr));
+              }
             }
-          }
-          candidates.push(path.basename(f, '.json'));
+            candidates.push(path.basename(f, '.json'));
 
-          for (const cand of candidates) {
-            if (!cand) continue;
-            if (String(cand).trim() === String(id).trim()) {
-              targetFile = f;
-              break;
+            for (const cand of candidates) {
+              if (!cand) continue;
+              if (String(cand).trim() === String(id).trim()) {
+                targetFile = f;
+                targetSubdir = subdir;
+                break fileSearch;
+              }
             }
+          } catch (err) {
+            continue;
           }
-          if (targetFile) break;
-        } catch (err) {
-          continue;
         }
       }
     }
@@ -683,15 +821,16 @@ app.post('/api/save-approval', requireAuth, checkApprovalPermission, async (req,
       return res.status(400).json({ error: 'Konnte Zieldatei nicht bestimmen. Bitte filename oder id angeben.' });
     }
 
-    // Backup file before modifying
-    await backupDataFile(targetFile);
+    // Backup file before modifying (im korrekten Unterordner)
+    const sourcePath = path.join(DATA_DIR, targetSubdir, targetFile);
+    await backupDataFileInSubdir(targetSubdir, targetFile);
 
     // Read content, update approvals
-    const content = await readJsonFileSafe(targetFile);
+    const content = await readJson(sourcePath);
 
     let written = false;
     const userRole = req.session.user.role;
-    
+
     // If id provided, try to find matching nested entry and set approvals there
     if (id && content) {
       // dozenten array
@@ -743,15 +882,34 @@ app.post('/api/save-approval', requireAuth, checkApprovalPermission, async (req,
     }
 
     // Write back to disk
-    const fullPath = path.join(DATA_DIR, targetFile);
+  // Write back to disk (im korrekten Unterordner)
+    const fullPath = path.join(DATA_DIR, targetSubdir, targetFile);
     await writeJsonSecure(fullPath, content);
 
-    res.json({ success: true, file: targetFile, role: userRole });
+    res.json({ success: true, file: targetFile, subdir: targetSubdir, role: userRole });
   } catch (err) {
     console.error('save-approval error', err);
     res.status(500).json({ error: 'Fehler beim Speichern' });
   }
 });
+
+// Neue Backup-Funktion für Unterordner
+async function backupDataFileInSubdir(subdir, filename) {
+  try {
+    if (!isJsonFile(filename)) return null;
+    const src = path.join(DATA_DIR, subdir, filename);
+    if (!fs.existsSync(src)) return null;
+    const now = new Date().toISOString().replace(/[:.]/g, '-');
+    const bak = `${src}.bak.${now}`;
+    await fsPromises.copyFile(src, bak);
+    try { await fsPromises.chmod(bak, 0o600); } catch (e) { /* ignore */ }
+    console.log(`Data backup erstellt: ${bak}`);
+    return bak;
+  } catch (err) {
+    console.error('backupDataFileInSubdir error', err);
+    return null;
+  }
+}
     // start server
     app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT}`));
 

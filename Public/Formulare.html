@@ -110,24 +110,47 @@
   }
 }'></textarea>
 
-        <div class="saved-section">
-          <h3>Daten (.json)</h3>
+        <div class="saved-sections">
+  <!-- Zuarbeit Liste -->
+  <div class="saved-section">
+    <h3>Zuarbeitsdaten (.json)</h3>
+    
+    <label for="saved-zuarbeit" style="display: block; margin-top: 6px;">Zuarbeitsdaten (.json)</label>
+    
+    <div class="select-with-input">
+      <select id="saved-zuarbeit">
+        <option value="">-- keine ausgewählt --</option>
+      </select>
+      
+      <input type="text" id="zuarbeit-input" placeholder="ID eingeben">
+      
+      <div class="saved-data-controls">
+        <button id="load-zuarbeit-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
+        <button id="refresh-zuarbeit-btn" type="button" class="btn">Liste neu laden</button>
+      </div>
+    </div>
+  </div>
 
-          <label for="saved-dozenten" style="display: block; margin-top: 6px;">Daten (.json)</label>
-          
-          <div class="select-with-input">
-            <select id="saved-dozenten">
-              <option value="">-- keine ausgewählt --</option>
-            </select>
-            
-            <input type="text" id="dozenten-input" placeholder="ID eingeben">
-            
-            <div class="saved-data-controls">
-              <button id="load-saved-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
-              <button id="refresh-saved-btn" type="button" class="btn">Liste neu laden</button>
-            </div>
-          </div>
-        </div>
+  <!-- Dozenten Liste -->
+  <div class="saved-section">
+    <h3>Dozentendaten (.json)</h3>
+    
+    <label for="saved-dozenten" style="display: block; margin-top: 6px;">Dozentendaten (.json)</label>
+    
+    <div class="select-with-input">
+      <select id="saved-dozenten">
+        <option value="">-- keine ausgewählt --</option>
+      </select>
+      
+      <input type="text" id="dozenten-input" placeholder="ID eingeben">
+      
+      <div class="saved-data-controls">
+        <button id="load-dozenten-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
+        <button id="refresh-dozenten-btn" type="button" class="btn">Liste neu laden</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 
         <button id="parse-btn" class="btn">Formular aus Eingabe füllen</button>
