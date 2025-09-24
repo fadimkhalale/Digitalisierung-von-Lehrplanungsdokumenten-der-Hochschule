@@ -1318,29 +1318,32 @@ document.addEventListener("DOMContentLoaded", () => {
   const refreshBtn = document.getElementById('refresh-saved-btn');
   const rdfTextarea = document.getElementById('rdf-input');
 
-  async function fetchList() {
-    try {
-      const r = await fetch('/api/json-list');
-      const list = await r.json();
-      return list;
-    } catch (err) {
-      console.error('Fehler beim Laden der Liste', err);
-      return [];
-    }
+ // Ändere die fetchList Funktion um die neuen Pfade zu unterstützen
+async function fetchList() {
+  try {
+    const r = await fetch('/api/json-list');
+    const list = await r.json();
+    return list;
+  } catch (err) {
+    console.error('Fehler beim Laden der Liste', err);
+    return [];
   }
+}
 
-  function populateSelect(list) {
-    // clear existing options except the first placeholder
-    select.innerHTML = '<option value="">-- keine ausgewählt --</option>';
-    for (const item of list) {
-      // use ID as shown name (as requested) but keep filename as value
-      const opt = document.createElement('option');
-      opt.value = item.filename;
-      opt.textContent = item.id;
-      select.appendChild(opt);
-    }
+// Die populateSelect Funktion bleibt gleich, da sie bereits mit relativen Pfaden arbeitet
+function populateSelect(list) {
+  const select = document.getElementById('saved-dozenten');
+  if (!select) return;
+  
+  // clear existing options except the first placeholder
+  select.innerHTML = '<option value="">-- keine ausgewählt --</option>';
+  for (const item of list) {
+    const opt = document.createElement('option');
+    opt.value = item.filename; // verwendet jetzt den relativen Pfad
+    opt.textContent = item.id;
+    select.appendChild(opt);
   }
-
+}
   async function refreshList() {
     const list = await fetchList();
     populateSelect(list);

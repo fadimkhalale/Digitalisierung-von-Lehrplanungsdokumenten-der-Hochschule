@@ -110,25 +110,39 @@
   }
 }'></textarea>
 
-        <div class="saved-section">
-          <h3>Daten (.json)</h3>
+<div class="saved-section">
+  <h3>Gespeicherte JSON-Daten laden</h3>
 
-          <label for="saved-dozenten" style="display: block; margin-top: 6px;">Daten (.json)</label>
-          
-          <div class="select-with-input">
-            <select id="saved-dozenten">
-              <option value="">-- keine ausgewählt --</option>
-            </select>
-            
-            <input type="text" id="dozenten-input" placeholder="ID eingeben">
-            
-            <div class="saved-data-controls">
-              <button id="load-saved-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
-              <button id="refresh-saved-btn" type="button" class="btn">Liste neu laden</button>
-            </div>
-          </div>
-        </div>
+  <!-- Dozentenblatt-Abschnitt -->
+  <div class="json-section">
+    <label for="saved-dozenten">Zuarbeitsblatt (aus Data/Zuarbeitsblätter/)</label>
+    <div class="select-with-input">
+      <select id="saved-dozenten">
+        <option value="">-- keine ausgewählt --</option>
+      </select>
+      <input type="text" id="dozenten-input" placeholder="ID eingeben">
+      <div class="saved-data-controls">
+        <button id="load-saved-dozenten-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
+        <button id="refresh-saved-dozenten-btn" type="button" class="btn">Liste neu laden</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Zuarbeitsblatt-Abschnitt -->
+  <div class="json-section">
+    <label for="saved-zuarbeit">Dozentenblatt (aus Data/Dozentenblätter/)</label>
+    <div class="select-with-input">
+      <select id="saved-zuarbeit">
+        <option value="">-- keine ausgewählt --</option>
+      </select>
+      <input type="text" id="zuarbeit-input" placeholder="ID eingeben">
+      <div class="saved-data-controls">
+        <button id="load-saved-zuarbeit-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
+        <button id="refresh-saved-zuarbeit-btn" type="button" class="btn">Liste neu laden</button>
+      </div>
+    </div>
+  </div>
+</div>
 
         <button id="parse-btn" class="btn">Formular aus Eingabe füllen</button>
         <button id="generate-pdf" class="btn">PDF generieren</button>
