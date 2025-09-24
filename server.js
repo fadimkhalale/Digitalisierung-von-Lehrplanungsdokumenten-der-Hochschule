@@ -15,12 +15,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 // original variable kept (lowercase 'data') — we will also support 'Data' (uppercase) as requested
 const DATA_DIR_CANDIDATES = [
-  path.join(__dirname, 'Data', 'Zuarbeitsblätter'), // preferred
-  path.join(__dirname, 'data', 'Zuarbeitsblätter'),  // fallback
-  path.join(__dirname, 'Data'), // fallback to root Data folder
-  path.join(__dirname, 'data')  // fallback to root data folder
+  path.join(__dirname, 'Data'), // preferred, as user said folder is named "Data"
+  path.join(__dirname, 'data')  // fallback if lowercase 'data' exists
 ];
-
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const BCRYPT_COST = 12;
 
@@ -36,7 +33,7 @@ function chooseDataDir() {
   for (const d of DATA_DIR_CANDIDATES) {
     if (fs.existsSync(d) && fs.statSync(d).isDirectory()) return d;
   }
-  // if none exist, return the preferred path
+  // if none exist, return the preferred (uppercase) so it will be created on demand by other code if needed
   return DATA_DIR_CANDIDATES[0];
 }
 const DATA_DIR = chooseDataDir();
@@ -133,83 +130,40 @@ async function readJsonFileSafe(filename) {
 // *** Updated to detect singular 'dozent' and singular 'modul' as well as plural forms ***
 async function listJsonFilesWithIds() {
   if (!fs.existsSync(DATA_DIR)) return [];
-  
-  // Rekursive Funktion zum Durchsuchen von Unterordnern
-  async function scanDirectory(dirPath, basePath = '') {
-    const files = await fsPromises.readdir(dirPath);
-    const results = [];
-    
-    for (const f of files) {
-      const fullPath = path.join(dirPath, f);
-      const relativePath = path.join(basePath, f);
-      const stat = await fsPromises.stat(fullPath);
-      
-      if (stat.isDirectory()) {
-        // Rekursiv Unterordner durchsuchen
-        const subResults = await scanDirectory(fullPath, relativePath);
-        results.push(...subResults);
-      } else if (f.toLowerCase().endsWith('.json')) {
-        try {
-          const contentRaw = await fsPromises.readFile(fullPath, 'utf8');
-          const content = JSON.parse(contentRaw);
-          let id = null;
-          
-          // check common places for ID (top-level ID/id)
-          if (content && (content.ID || content.id)) id = content.ID || content.id;
-          // check singular 'dozent'
-          else if (content && content.dozent && (content.dozent.ID || content.dozent.id)) id = content.dozent.ID || content.dozent.id;
-          // check plural 'dozenten' array first entry
-          else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && (content.dozenten[0].ID || content.dozenten[0].id)) {
-            id = content.dozenten[0].ID || content.dozenten[0].id;
-          }
-          // check singular 'modul'
-          else if (content && content.modul && (content.modul.ID || content.modul.id)) id = content.modul.ID || content.modul.id;
-          // check plural 'module' array first entry
-          else if (content && content.module && Array.isArray(content.module) && content.module.length > 0 && (content.module[0].ID || content.module[0].id || content.module[0].modulnr)) {
-            id = content.module[0].ID || content.module[0].id || content.module[0].modulnr;
-          }
-          // fallback: filename without extension
-          if (!id) id = path.basename(f, '.json');
-          
-          results.push({ 
-            id: String(id), 
-            filename: relativePath, // Jetzt relativer Pfad statt nur Dateiname
-            fullPath: fullPath // Für Backup-Funktionen
-          });
-        } catch (err) {
-          // skip broken JSON but still include filename fallback id
-          results.push({ 
-            id: path.basename(f, '.json'), 
-            filename: relativePath,
-            fullPath: fullPath,
-            _error: 'invalid json' 
-          });
-        }
+  const files = await fsPromises.readdir(DATA_DIR);
+  const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+  const results = [];
+  for (const f of jsonFiles) {
+    try {
+      const contentRaw = await fsPromises.readFile(path.join(DATA_DIR, f), 'utf8');
+      const content = JSON.parse(contentRaw);
+      let id = null;
+      // check common places for ID (top-level ID/id)
+      if (content && (content.ID || content.id)) id = content.ID || content.id;
+      // check singular 'dozent' (your example)
+      else if (content && content.dozent && (content.dozent.ID || content.dozent.id)) id = content.dozent.ID || content.dozent.id;
+      // check plural 'dozenten' array first entry
+      else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && (content.dozenten[0].ID || content.dozenten[0].id)) {
+        id = content.dozenten[0].ID || content.dozenten[0].id;
       }
+      // check singular 'modul'
+      else if (content && content.modul && (content.modul.ID || content.modul.id)) id = content.modul.ID || content.modul.id;
+      // check plural 'module' array first entry
+      else if (content && content.module && Array.isArray(content.module) && content.module.length > 0 && (content.module[0].ID || content.module[0].id || content.module[0].modulnr)) {
+        id = content.module[0].ID || content.module[0].id || content.module[0].modulnr;
+      }
+      // fallback: filename without extension
+      if (!id) id = path.basename(f, '.json');
+      results.push({ id: String(id), filename: f });
+    } catch (err) {
+      // skip broken JSON but still include filename fallback id
+      results.push({ id: path.basename(f, '.json'), filename: f, _error: 'invalid json' });
     }
-    return results;
   }
-  
-  const results = await scanDirectory(DATA_DIR);
   // sort by id for nicer UX
   results.sort((a,b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
   return results;
 }
-
-// Ändere readJsonFileSafe um mit relativen Pfaden zu arbeiten
-async function readJsonFileSafe(filename) {
-  if (typeof filename !== 'string') throw new Error('Ungültiger Dateiname');
-  if (!filename.toLowerCase().endsWith('.json')) throw new Error('Ungültiger Dateiname');
-  if (filename.includes('..') || path.isAbsolute(filename)) throw new Error('Ungültiger Pfad');
-  
-  const filepath = path.join(DATA_DIR, filename);
-  // ensure it still resides in DATA_DIR
-  if (!filepath.startsWith(DATA_DIR)) throw new Error('Ungültiger Pfad');
-  
-  const raw = await fsPromises.readFile(filepath, 'utf8');
-  return JSON.parse(raw);
-}
-
 
 // helper: backup data file before modifying
 async function backupDataFile(filename) {
