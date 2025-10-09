@@ -75,6 +75,10 @@ let allPDFs = [];
   // Event Listener
   document.getElementById('filterBtn').addEventListener('click', applyFilters);
   
+   
+  document.getElementById('backBtn').addEventListener('click', () => {
+    window.location.href = 'formulare.html';
+  });
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('view-btn')) {
       window.open(`/view?path=${encodeURIComponent(e.target.dataset.path)}`, '_blank');
