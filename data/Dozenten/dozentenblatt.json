@@ -1,6 +1,6 @@
 {
   "dozent": {
-    "ID": "D12345",
+    "id": "D12345",
     "titel": "Prof. Dr.",
     "vorname": "Max",
     "nachname": "Mustermann",

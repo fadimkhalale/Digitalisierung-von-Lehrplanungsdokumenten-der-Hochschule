@@ -3,7 +3,7 @@ document
   .addEventListener("click", () => {
     document.getElementById("rdf-input").value = JSON.stringify({
       "dozent": {
-        "ID": "D12345",
+        "id": "D12345",
         "titel": "Prof. Dr.",
         "vorname": "Max",
         "nachname": "Mustermann",
@@ -465,7 +465,7 @@ function parseJSON() {
 }
 
 function fillZuarbeitsblatt(data) {
-  setFieldContent("zuarbeit-id", data.ID);
+  setFieldContent("zuarbeit-id", data.id || data.ID); 
   setFieldContent("fakultaet", data.fakultaet);
   setFieldContent("studiengang", data.studiengang);
   setFieldContent("fs", data.fs);
@@ -555,8 +555,8 @@ function fillZuarbeitsblatt(data) {
 }
 
 function fillDozentenblatt(data) {
-  setFieldContent("dozent-id", data.ID);
-  setFieldContent("dozent-id-anlage", data.ID);
+  setFieldContent("dozent-id", data.id || data.ID);
+  setFieldContent("dozent-id-anlage", data.id || data.ID)
   setFieldContent("titel", data.titel);
   setFieldContent("vorname", data.vorname);
   setFieldContent("nachname", data.nachname);
@@ -1253,7 +1253,7 @@ document.addEventListener("DOMContentLoaded", () => {
     exampleBtn.addEventListener("click", () => {
       document.getElementById("rdf-input").value = JSON.stringify({
         "modul": {
-          "ID": "Z12345",
+          "id": "Z12345",
           "fakultaet": "FIM",
           "studiengang": "BIB",
           "fs": "3",
@@ -1564,11 +1564,11 @@ async function determineTargetFromUIOrTextarea() {
   if (ta && ta.value.trim()) {
     try {
       const obj = JSON.parse(ta.value);
-      if (obj && (obj.ID || obj.id)) return { filename: null, type: null, id: obj.ID || obj.id };
-      if (obj.dozent && (obj.dozent.ID || obj.dozent.id || obj.dozent.nachname)) 
-        return { filename: null, type: 'dozenten', id: obj.dozent.ID || obj.dozent.id || obj.dozent.nachname };
-      if (obj.modul && (obj.modul.ID || obj.modul.id || obj.modul.modulnr)) 
-        return { filename: null, type: 'zuarbeit', id: obj.modul.ID || obj.modul.id || obj.modul.modulnr };
+      if (obj && (obj.id || obj.ID)) return { filename: null, type: null, id: obj.id || obj.ID };
+if (obj.dozent && (obj.dozent.id || obj.dozent.ID || obj.dozent.nachname)) 
+  return { filename: null, type: 'dozenten', id: obj.dozent.id || obj.dozent.ID || obj.dozent.nachname };
+if (obj.modul && (obj.modul.id || obj.modul.ID || obj.modul.modulnr)) 
+  return { filename: null, type: 'zuarbeit', id: obj.modul.id || obj.modul.ID || obj.modul.modulnr };
     } catch (e) { /* ignore */ }
   }
 

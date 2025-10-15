@@ -145,21 +145,23 @@ async function listJsonFilesWithIds() {
       const content = JSON.parse(contentRaw);
       let id = null;
       // check common places for ID (top-level ID/id)
-      if (content && (content.ID || content.id)) id = content.ID || content.id;
+      if (content && (content.id || content.ID)) id = content.id || content.ID;
       // check singular 'dozent' (your example)
-      else if (content && content.dozent && (content.dozent.ID || content.dozent.id)) id = content.dozent.ID || content.dozent.id;
+      else if (content && content.dozent && (content.dozent.id || content.dozent.ID)) 
+        id = content.dozent.id || content.dozent.ID;
       // check plural 'dozenten' array first entry
-      else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && (content.dozenten[0].ID || content.dozenten[0].id)) {
-        id = content.dozenten[0].ID || content.dozenten[0].id;
+     else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && (content.dozenten[0].id || content.dozenten[0].ID)) {
+        id = content.dozenten[0].id || content.dozenten[0].ID;
       }
       // check singular 'modul'
-      else if (content && content.modul && (content.modul.ID || content.modul.id)) id = content.modul.ID || content.modul.id;
+      else if (content && content.modul && (content.modul.id || content.modul.ID)) 
+        id = content.modul.id || content.modul.ID;
       // check plural 'module' array first entry
-      else if (content && content.module && Array.isArray(content.module) && content.module.length > 0 && (content.module[0].ID || content.module[0].id || content.module[0].modulnr)) {
-        id = content.module[0].ID || content.module[0].id || content.module[0].modulnr;
+      else if (content && content.module && Array.isArray(content.module) && content.module.length > 0 && (content.module[0].id || content.module[0].ID || content.module[0].modulnr)) {
+        id = content.module[0].id || content.module[0].ID || content.module[0].modulnr;
       }
       // fallback: filename without extension
-      if (!id) id = path.basename(f, '.json');
+       if (!id) id = path.basename(f, '.json');
       results.push({ id: String(id), filename: f });
     } catch (err) {
       // skip broken JSON but still include filename fallback id
@@ -449,9 +451,9 @@ function checkApprovalPermission(req, res, next) {
           // Handle different JSON structures: plural and singular forms
           if (filename === 'dozentenblatt.json') {
             if (jsonData.dozenten && Array.isArray(jsonData.dozenten)) {
-              jsonData.dozenten.forEach(dozent => {
-                results.push({
-                  id: dozent.id || dozent.ID || dozent.nachname,
+  jsonData.dozenten.forEach(dozent => {
+    results.push({
+      id: dozent.id || dozent.ID || dozent.nachname,
                   name: `${dozent.titel || ''} ${dozent.vorname || ''} ${dozent.nachname || ''}`.trim(),
                   file: filename,
                   type: 'dozent'
@@ -507,13 +509,13 @@ function checkApprovalPermission(req, res, next) {
         
         let result = null;
         if (safeFile === 'dozentenblatt.json') {
-          if (jsonData.dozenten && Array.isArray(jsonData.dozenten)) {
-            result = jsonData.dozenten.find(d => (d.id === id) || (d.ID === id) || (d.nachname === id));
-          } else if (jsonData.dozent && typeof jsonData.dozent === 'object') {
-            const d = jsonData.dozent;
-            if ((d.id && d.id === id) || (d.ID && d.ID === id) || (d.nachname && d.nachname === id)) result = d;
-          }
-        } else if (safeFile === 'zuarbeitsblatt.json') {
+  if (jsonData.dozenten && Array.isArray(jsonData.dozenten)) {
+    result = jsonData.dozenten.find(d => (d.id === id) || (d.ID === id) || (d.nachname === id));
+  } else if (jsonData.dozent && typeof jsonData.dozent === 'object') {
+    const d = jsonData.dozent;
+    if ((d.id && d.id === id) || (d.ID && d.ID === id) || (d.nachname && d.nachname === id)) result = d;
+  }
+} else if (safeFile === 'zuarbeitsblatt.json') {
           if (jsonData.module && Array.isArray(jsonData.module)) {
             result = jsonData.module.find(m => (m.id === id) || (m.ID === id) || (m.modulnr === id));
           } else if (jsonData.modul && typeof jsonData.modul === 'object') {
@@ -558,10 +560,10 @@ app.get('/api/json-list/zuarbeit', requireAuth, async (req, res) => {
         let id = null;
         
         // Extrahiere ID aus verschiedenen Stellen
-        if (content && (content.ID || content.id)) id = content.ID || content.id;
-        else if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) {
-          id = content.modul.ID || content.modul.id || content.modul.modulnr;
-        }
+        if (content && (content.id || content.ID)) id = content.id || content.ID;
+else if (content && content.modul && (content.modul.id || content.modul.ID || content.modul.modulnr)) {
+  id = content.modul.id || content.modul.ID || content.modul.modulnr;
+}
         else if (content && content.module && Array.isArray(content.module) && content.module.length > 0) {
           id = content.module[0].ID || content.module[0].id || content.module[0].modulnr;
         }
@@ -597,10 +599,10 @@ app.get('/api/json-list/dozenten', requireAuth, async (req, res) => {
         let id = null;
         
         // Extrahiere ID aus verschiedenen Stellen
-        if (content && (content.ID || content.id)) id = content.ID || content.id;
-        else if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) {
-          id = content.dozent.ID || content.dozent.id || content.dozent.nachname;
-        }
+        if (content && (content.id || content.ID)) id = content.id || content.ID;
+else if (content && content.dozent && (content.dozent.id || content.dozent.ID || content.dozent.nachname)) {
+  id = content.dozent.id || content.dozent.ID || content.dozent.nachname;
+}
         else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0) {
           id = content.dozenten[0].ID || content.dozenten[0].id || content.dozenten[0].nachname;
         }
@@ -836,7 +838,7 @@ app.post('/api/save-approval', requireAuth, checkApprovalPermission, async (req,
       // dozenten array
       if (!written && content.dozenten && Array.isArray(content.dozenten)) {
         for (let d of content.dozenten) {
-          if (d && (String(d.ID) === String(id) || String(d.id) === String(id) || String(d.nachname) === String(id))) {
+          if (d && (String(d.id) === String(id) || String(d.ID) === String(id) || String(d.nachname) === String(id))) {
             if (!d.approvals) d.approvals = {};
             d.approvals[userRole] = clean[userRole];
             written = true;
@@ -856,7 +858,7 @@ app.post('/api/save-approval', requireAuth, checkApprovalPermission, async (req,
       // module array
       if (!written && content.module && Array.isArray(content.module)) {
         for (let m of content.module) {
-          if (m && (String(m.ID) === String(id) || String(m.id) === String(id) || String(m.modulnr) === String(id))) {
+          if (m && (String(m.id) === String(id) || String(m.ID) === String(id) || String(m.modulnr) === String(id))) {
             if (!m.approvals) m.approvals = {};
             m.approvals[userRole] = clean[userRole];
             written = true;
