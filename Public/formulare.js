@@ -415,6 +415,112 @@ function setupApprovalPermissions() {
       console.error('Fehler beim Abrufen der Benutzerrolle:', error);
     });
 }
+// Funktion zum Speichern der Dekan-Unterschrift
+async function saveDekanSignature() {
+  try {
+    const userRole = await getUserRole();
+    if (userRole !== 'Dekan') {
+      alert('Nur der Dekan kann unterschreiben.');
+      return;
+    }
+
+    const signature = document.getElementById('unterschrift-dekan').value.trim();
+    if (!signature) {
+      alert('Bitte geben Sie eine Unterschrift ein.');
+      return;
+    }
+
+    // Bestimme Ziel-Datei (ähnlich wie bei saveApprovalToServer)
+    let target = await determineTargetFromUIOrTextarea();
+
+    // Füge Typ-Information zur Payload hinzu
+    const payload = { 
+      filename: target.filename, 
+      id: target.id, 
+      type: target.type,
+      signature: signature
+    };
+
+    console.log('Saving signature with payload:', payload);
+
+    const r = await fetch('/api/save-signature', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+      let txt;
+      try { txt = await r.text(); } catch (e) { txt = r.statusText || 'Fehler'; }
+      console.error('Server responded with error', r.status, txt);
+      return alert('Speichern der Unterschrift fehlgeschlagen: ' + txt);
+    }
+
+    alert('Unterschrift wurde gespeichert.');
+
+    // Aktualisiere die Anzeige
+    if (target.filename) {
+      try {
+        const r2 = await fetch('/api/json-file/' + encodeURIComponent(target.filename));
+        if (r2.ok) {
+          const obj = await r2.json();
+          document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
+          // Formular neu füllen, um die Unterschrift anzuzeigen
+          if (window.currentTemplate === 'zuarbeit') {
+            fillZuarbeitsblatt(obj.modul || obj);
+          } else if (window.currentTemplate === 'dozent') {
+            fillDozentenblatt(obj.dozent || obj);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+  } catch (err) {
+    console.error('saveDekanSignature error', err);
+    alert('Speichern der Unterschrift fehlgeschlagen: ' + (err.message || err));
+  }
+}
+
+// Unterschriftsfeld nur für Dekan anzeigen
+function setupSignatureField() {
+  fetch('/check-auth')
+    .then(response => response.json())
+    .then(data => {
+      if (data.authenticated && data.user.role === 'Dekan') {
+        // Zeige Unterschriftsfeld nur für Dekan
+        const signatureLabel = document.querySelector('label[for="unterschrift-dekan"]');
+        const signatureInput = document.getElementById('unterschrift-dekan');
+        const signatureButton = document.getElementById('save-signature-btn');
+        
+        if (signatureLabel) signatureLabel.style.display = 'inline-block';
+        if (signatureInput) signatureInput.style.display = 'inline-block';
+        if (signatureButton) signatureButton.style.display = 'inline-block';
+      } else {
+        // Verstecke Unterschriftsfeld für andere Rollen
+        const signatureLabel = document.querySelector('label[for="unterschrift-dekan"]');
+        const signatureInput = document.getElementById('unterschrift-dekan');
+        const signatureButton = document.getElementById('save-signature-btn');
+        
+        if (signatureLabel) signatureLabel.style.display = 'none';
+        if (signatureInput) signatureInput.style.display = 'none';
+        if (signatureButton) signatureButton.style.display = 'none';
+      }
+    })
+    .catch(error => {
+      console.error('Fehler beim Überprüfen der Benutzerrolle für Unterschrift:', error);
+    });
+}
+
+// Event Listener für Unterschrifts-Button
+document.addEventListener('DOMContentLoaded', function() {
+  const saveSignatureBtn = document.getElementById('save-signature-btn');
+  if (saveSignatureBtn) {
+    saveSignatureBtn.addEventListener('click', saveDekanSignature);
+  }
+  
+  // Setup Unterschriftsfeld
+  setupSignatureField();
+});
 document.getElementById("form-container").innerHTML = formHTML;
 function resetForm() {
   document.getElementById("form-container").innerHTML = formHTML;
@@ -447,9 +553,11 @@ function parseJSON() {
     const jsonDataObj = isDozent ? data.dozent : data.modul;
 
     if (window.currentTemplate === "zuarbeit" && !isDozent) {
-      fillZuarbeitsblatt(jsonDataObj);
+      // Für Zuarbeit: data.modul an fillZuarbeitsblatt übergeben
+      fillZuarbeitsblatt(data.modul || data);
     } else if (window.currentTemplate === "dozent" && isDozent) {
-      fillDozentenblatt(jsonDataObj);
+      // Für Dozenten: data.dozent an fillDozentenblatt übergeben
+      fillDozentenblatt(data.dozent || data);
     } else {
       alert("JSON-Daten passen nicht zum aktuellen Formulartyp!");
       return;
@@ -537,7 +645,7 @@ function fillZuarbeitsblatt(data) {
     });
   }
   
-  document.querySelectorAll(".signature-box").forEach((box) => {
+   document.querySelectorAll(".signature-box").forEach((box) => {
     if (box.textContent.includes("Professor/in")) {
       box.innerHTML = `Datum: ${
         data.datumUnterschrift || ""
@@ -548,7 +656,7 @@ function fillZuarbeitsblatt(data) {
       box.innerHTML = `Datum: ${
         data.datumUnterschrift || ""
       }<br>Unterschrift: ${
-        data.dekanUnterschrift || ""
+        data.dekanUnterschrift || "" 
       }<br>Dekan/in der Fakultät`;
     }
   });
@@ -674,7 +782,8 @@ function fillDozentenblatt(data) {
     }
   }
   
-  document.querySelectorAll(".signature-box").forEach((box) => {
+  // Setze Unterschrift in den Signatur-Boxen
+   document.querySelectorAll(".signature-box").forEach((box) => {
     if (box.textContent.includes("Professor/in")) {
       box.innerHTML = `Datum: ${
         data.datumUnterschrift || ""
@@ -685,7 +794,7 @@ function fillDozentenblatt(data) {
       box.innerHTML = `Datum: ${
         data.datumUnterschrift || ""
       }<br>Unterschrift: ${
-        data.dekanUnterschrift || ""
+        data.dekanUnterschrift || "" 
       }<br>Dekan/in der Fakultät`;
     }
   });

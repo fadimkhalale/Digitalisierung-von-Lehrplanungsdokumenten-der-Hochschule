@@ -252,6 +252,128 @@ function checkApprovalPermission(req, res, next) {
   next();
 }
 
+  // POST /api/save-signature - Speichert die Dekan-Unterschrift
+// POST /api/save-signature - Speichert die Dekan-Unterschrift in modul/dozent Objekten
+app.post('/api/save-signature', requireAuth, async (req, res) => {
+  try {
+    // Nur Dekan darf unterschreiben
+    if (req.session.user.role !== 'Dekan') {
+      return res.status(403).json({ error: 'Nur der Dekan darf unterschreiben' });
+    }
+
+    const { filename, id, type, signature } = req.body || {};
+    if (!signature) return res.status(400).json({ error: 'Unterschrift erforderlich' });
+
+    let targetFile = null;
+    let targetSubdir = null;
+
+    // Bestimme Ziel-Datei UND Unterordner
+    if (filename && isJsonFile(filename)) {
+      const safe = path.basename(filename);
+      
+      // Prüfe in welchem Unterordner die Datei existiert
+      const subdirs = ['Zuarbeit', 'Dozenten'];
+      for (const subdir of subdirs) {
+        const full = path.join(DATA_DIR, subdir, safe);
+        if (fs.existsSync(full)) {
+          targetFile = safe;
+          targetSubdir = subdir;
+          break;
+        }
+      }
+      
+      if (!targetFile) return res.status(404).json({ error: 'Datei nicht gefunden' });
+    }
+
+    // Wenn filename nicht angegeben, versuche Lookup by id in Unterordnern
+    if (!targetFile && id) {
+      if (!fs.existsSync(DATA_DIR)) return res.status(404).json({ error: 'Data directory not found' });
+      
+      const subdirs = ['Zuarbeit', 'Dozenten'];
+      fileSearch: for (const subdir of subdirs) {
+        const subdirPath = path.join(DATA_DIR, subdir);
+        if (!fs.existsSync(subdirPath)) continue;
+        
+        const files = await fsPromises.readdir(subdirPath);
+        const jsonFiles = files.filter(f => f.toLowerCase().endsWith('.json'));
+        
+        for (const f of jsonFiles) {
+          try {
+            const content = await readJson(path.join(subdirPath, f));
+            const candidates = [];
+            if (content && (content.ID || content.id)) candidates.push(String(content.ID || content.id));
+            if (content && content.dozent && (content.dozent.ID || content.dozent.id || content.dozent.nachname)) 
+              candidates.push(String(content.dozent.ID || content.dozent.id || content.dozent.nachname));
+            if (content && content.dozenten && Array.isArray(content.dozenten)) {
+              for (const d of content.dozenten) {
+                if (d && (d.ID || d.id || d.nachname)) candidates.push(String(d.ID || d.id || d.nachname));
+              }
+            }
+            if (content && content.modul && (content.modul.ID || content.modul.id || content.modul.modulnr)) 
+              candidates.push(String(content.modul.ID || content.modul.id || content.modul.modulnr));
+            if (content && content.module && Array.isArray(content.module)) {
+              for (const m of content.module) {
+                if (m && (m.ID || m.id || m.modulnr)) candidates.push(String(m.ID || m.id || m.modulnr));
+              }
+            }
+            candidates.push(path.basename(f, '.json'));
+
+            for (const cand of candidates) {
+              if (!cand) continue;
+              if (String(cand).trim() === String(id).trim()) {
+                targetFile = f;
+                targetSubdir = subdir;
+                break fileSearch;
+              }
+            }
+          } catch (err) {
+            continue;
+          }
+        }
+      }
+    }
+
+    if (!targetFile) {
+      return res.status(400).json({ error: 'Konnte Zieldatei nicht bestimmen. Bitte filename oder id angeben.' });
+    }
+
+    // Backup file before modifying
+    await backupDataFileInSubdir(targetSubdir, targetFile);
+
+    // Read content, update signature
+    const sourcePath = path.join(DATA_DIR, targetSubdir, targetFile);
+    const content = await readJson(sourcePath);
+
+    let written = false;
+
+    // Je nach Unterordner in modul oder dozent Objekt speichern
+    if (targetSubdir === 'Zuarbeit') {
+      // Für Zuarbeit: Im modul-Objekt speichern
+      if (!content.modul) {
+        content.modul = {};
+      }
+      content.modul.dekanUnterschrift = signature;
+      written = true;
+    } else if (targetSubdir === 'Dozenten') {
+      // Für Dozenten: Im dozent-Objekt speichern
+      if (!content.dozent) {
+        content.dozent = {};
+      }
+      content.dozent.dekanUnterschrift = signature;
+      written = true;
+    }
+
+    // Write back to disk
+    const fullPath = path.join(DATA_DIR, targetSubdir, targetFile);
+    await writeJsonSecure(fullPath, content);
+
+    res.json({ success: true, file: targetFile, subdir: targetSubdir, signature: signature });
+  } catch (err) {
+    console.error('save-signature error', err);
+    res.status(500).json({ error: 'Fehler beim Speichern der Unterschrift' });
+  }
+});
+
     // GET / - Root-Route zur Login-Umleitung
     app.get('/', (req, res) => {
       res.redirect('/login.html');
