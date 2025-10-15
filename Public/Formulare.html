@@ -17,7 +17,11 @@
         </button>
       </div>
 
-      <img alt="HTWK Logo" src="https://upload.wikimedia.org/wikipedia/de/1/16/HTWK-Logo.svg" class="logo" />
+      <img
+        alt="HTWK Logo"
+        src="https://upload.wikimedia.org/wikipedia/de/1/16/HTWK-Logo.svg"
+        class="logo"
+      />
       <!-- Kein onclick; JS behandelt Navigation -->
       <button id="pdf-manager-btn" class="btn" type="button">
         PDF Manager
@@ -26,7 +30,7 @@
 
     <div class="container">
       <h1 class="page-title">Generator mit JSON</h1>
-      
+
       <!-- Semester Controls unter dem Titel -->
       <div class="semester-controls">
         <label for="semester-art"> Semester: </label>
@@ -37,24 +41,38 @@
         </select>
         <label for="semester-jahr"> Jahr(e): </label>
         <input id="semester-jahr" type="text" value="2025/26" />
-        <label for="planungswochen">
-          Planungswochen:
-        </label>
+        <label for="planungswochen"> Planungswochen: </label>
         <input id="planungswochen" type="text" value="42–58" />
       </div>
 
       <div class="input-section">
         <h2>JSON Eingabe</h2>
         <p>Geben Sie Ihre Daten im JSON Format ein:</p>
-        
+
         <!-- Beispiel-Buttons mit Klassen statt Inline-Stilen -->
         <div class="example-buttons">
-          <button id="switch-template-btn" class="btn btn-primary" type="button">Wechsel zu Dozentenblatt</button>
-          <button id="example-btn" class="btn btn-secondary" type="button">Beispiel Zuarbeitsblatt</button>
-          <button id="example-dozentenblatt-btn" class="btn btn-secondary" type="button">Beispiel Dozentenblatt</button>
+          <button
+            id="switch-template-btn"
+            class="btn btn-primary"
+            type="button"
+          >
+            Wechsel zu Dozentenblatt
+          </button>
+          <button id="example-btn" class="btn btn-secondary" type="button">
+            Beispiel Zuarbeitsblatt
+          </button>
+          <button
+            id="example-dozentenblatt-btn"
+            class="btn btn-secondary"
+            type="button"
+          >
+            Beispiel Dozentenblatt
+          </button>
         </div>
 
-        <textarea id="rdf-input" placeholder='Beispiel:
+        <textarea
+          id="rdf-input"
+          placeholder='Beispiel:
 {
   "modul": {
     "fakultaet": "FIM",
@@ -108,78 +126,111 @@
       "erlaeuterung": "Praktikum in Einzelgruppen, wöchentlich wechselnd: Gruppe 1+2 (KW42,44,...), Gruppe 3+4 (KW43,45,...), Gruppe 5 (flexibel)"
     }
   }
-}'></textarea>
+}'
+        ></textarea>
 
         <div class="saved-sections">
-  <!-- Zuarbeit Liste -->
-  <div class="saved-section">
-    <h3>Zuarbeitsdaten (.json)</h3>
-    
-    <label for="saved-zuarbeit" style="display: block; margin-top: 6px;">Zuarbeitsdaten (.json)</label>
-    
-    <div class="select-with-input">
-      <select id="saved-zuarbeit">
-        <option value="">-- keine ausgewählt --</option>
-      </select>
-      
-      <input type="text" id="zuarbeit-input" placeholder="ID eingeben">
-      
-      <div class="saved-data-controls">
-        <button id="load-zuarbeit-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
-        <button id="refresh-zuarbeit-btn" type="button" class="btn">Liste neu laden</button>
-      </div>
-    </div>
-  </div>
+          <!-- Zuarbeit Liste -->
+          <div class="saved-section">
+            <h3>Zuarbeitsdaten (.json)</h3>
 
-  <!-- Dozenten Liste -->
-  <div class="saved-section">
-    <h3>Dozentendaten (.json)</h3>
-    
-    <label for="saved-dozenten" style="display: block; margin-top: 6px;">Dozentendaten (.json)</label>
-    
-    <div class="select-with-input">
-      <select id="saved-dozenten">
-        <option value="">-- keine ausgewählt --</option>
-      </select>
-      
-      <input type="text" id="dozenten-input" placeholder="ID eingeben">
-      
-      <div class="saved-data-controls">
-        <button id="load-dozenten-btn" type="button" class="btn">Auswahl in Eingabe übernehmen</button>
-        <button id="refresh-dozenten-btn" type="button" class="btn">Liste neu laden</button>
-      </div>
-    </div>
-  </div>
-</div>
+            <label for="saved-zuarbeit" style="display: block; margin-top: 6px"
+              >Zuarbeitsdaten (.json)</label
+            >
 
+            <div class="select-with-input">
+              <select id="saved-zuarbeit">
+                <option value="">-- keine ausgewählt --</option>
+              </select>
 
-        <button id="parse-btn" class="btn">Formular aus Eingabe füllen</button>
-        <button id="generate-pdf" class="btn">PDF generieren</button>
-        <button id="reset-form" class="btn">Eingabe zurücksetzen</button>
+              <input
+                type="text"
+                id="zuarbeit-input"
+                placeholder="ID eingeben"
+              />
+
+              <div class="saved-data-controls">
+                <button id="load-zuarbeit-btn" type="button" class="btn">
+                  Auswahl in Eingabe übernehmen
+                </button>
+                <button id="refresh-zuarbeit-btn" type="button" class="btn">
+                  Liste neu laden
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dozenten Liste -->
+          <div class="saved-section">
+            <h3>Dozentendaten (.json)</h3>
+
+            <label for="saved-dozenten" style="display: block; margin-top: 6px"
+              >Dozentendaten (.json)</label
+            >
+
+            <div class="select-with-input">
+              <select id="saved-dozenten">
+                <option value="">-- keine ausgewählt --</option>
+              </select>
+
+              <input
+                type="text"
+                id="dozenten-input"
+                placeholder="ID eingeben"
+              />
+
+              <div class="saved-data-controls">
+                <button id="load-dozenten-btn" type="button" class="btn">
+                  Auswahl in Eingabe übernehmen
+                </button>
+                <button id="refresh-dozenten-btn" type="button" class="btn">
+                  Liste neu laden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      
+
+      <div class="action-buttons">
+        <button id="parse-btn" class="btn btn-dark-red">
+          Formular aus Eingabe füllen
+        </button>
+        <button id="generate-pdf" class="btn btn-dark-red">
+          PDF generieren
+        </button>
+        <button id="reset-form" class="btn btn-dark-red">
+          Eingabe zurücksetzen
+        </button>
+      </div>
+
       <div class="output-section">
         <h2>Vorschau</h2>
         <!-- Checkboxen für Studienamt, Dekan, Studiendekan -->
         <div class="checkbox-group control" id="approval-area">
           <label>
-            <input type="checkbox" id="checkbox-studienamt">
+            <input type="checkbox" id="checkbox-studienamt" />
             Studienamt
           </label>
           <label>
-            <input type="checkbox" id="checkbox-dekan">
+            <input type="checkbox" id="checkbox-dekan" />
             Dekan
           </label>
           <label>
-            <input type="checkbox" id="checkbox-studiendekan">
+            <input type="checkbox" id="checkbox-studiendekan" />
             Studiendekan
           </label>
 
           <!-- Neuer Button zum Speichern der Auswahl -->
-          <button id="save-approval-btn" type="button" class="btn">Speichern</button>
+          <button id="save-approval-btn" type="button" class="btn">
+            Speichern
+          </button>
         </div>
-        
-        <div id="approval-status" style="margin-top:8px;font-size:13px;color:#374151"></div>
+
+        <div
+          id="approval-status"
+          style="margin-top: 8px; font-size: 13px; color: #374151"
+        ></div>
 
         <div class="form-container zuarbeitsblatt" id="form-container"></div>
       </div>
