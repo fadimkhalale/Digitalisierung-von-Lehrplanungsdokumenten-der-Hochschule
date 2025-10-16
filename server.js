@@ -552,7 +552,7 @@ app.post('/api/save-signature', requireAuth, async (req, res) => {
       res.sendFile(path.join(__dirname, 'public', 'pdf-manager.html'));
     });
 
-    // JSON endpoints (replacing RDFS endpoints) — original behavior preserved and extended
+    // JSON endpoints
     app.get('/json/list', requireAuth, (req, res) => {
       const type = req.query.type || 'all';
       const map = { dozent: 'dozentenblatt.json', zuarbeit: 'zuarbeitsblatt.json' };

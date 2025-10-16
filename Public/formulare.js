@@ -1,7 +1,7 @@
 document
   .getElementById("example-dozentenblatt-btn")
   .addEventListener("click", () => {
-    document.getElementById("rdf-input").value = JSON.stringify({
+    document.getElementById("json-input").value = JSON.stringify({
       "id": "D12345",
       "dozent": {
         "titel": "Prof. Dr.",
@@ -416,7 +416,6 @@ function setupApprovalPermissions() {
     });
 }
 // Funktion zum Speichern der Dekan-Unterschrift
-// Funktion zum Speichern der Dekan-Unterschrift
 async function saveDekanSignature() {
   try {
     const userRole = await getUserRole();
@@ -511,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById("form-container").innerHTML = formHTML;
 function resetForm() {
   document.getElementById("form-container").innerHTML = formHTML;
-  document.getElementById("rdf-input").value = "";
+  document.getElementById("json-input").value = "";
   setupEventListeners();
 }
 function setupEventListeners() {
@@ -525,7 +524,7 @@ setupEventListeners();
 
 
 function parseJSON() {
-  const jsonData = document.getElementById("rdf-input").value;
+  const jsonData = document.getElementById("json-input").value;
 
   if (!jsonData.trim()) {
     alert("Bitte JSON-Daten eingeben!");
@@ -1357,7 +1356,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const exampleBtn = document.getElementById("example-btn");
   if (exampleBtn) {
     exampleBtn.addEventListener("click", () => {
-      document.getElementById("rdf-input").value = JSON.stringify({
+      document.getElementById("json-input").value = JSON.stringify({
         "id": "Z12345",
         "modul": {
           "fakultaet": "FIM",
@@ -1443,7 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById(inputId);
     const loadBtn = document.getElementById(loadBtnId);
     const refreshBtn = document.getElementById(refreshBtnId);
-    const rdfTextarea = document.getElementById('rdf-input');
+    const jsonTextarea = document.getElementById('json-input');
 
     async function fetchList() {
       try {
@@ -1524,7 +1523,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // JSON in Textarea einfügen
-        rdfTextarea.value = JSON.stringify(data, null, 2);
+        jsonTextarea.value = JSON.stringify(data, null, 2);
         
         // Automatisch Template wechseln basierend auf Typ
         if (typeof switchTemplate === 'function') {
@@ -1574,8 +1573,8 @@ async function loadSelectedIntoTextarea() {
     );
     if (!res.ok) throw new Error("JSON nicht gefunden");
     const jsonData = await res.json();
-    const rdfInput = document.getElementById("rdf-input");
-    if (!rdfInput) return alert("rdf-input nicht gefunden.");
+    const jsonInput = document.getElementById("json-input");
+    if (!jsonInput) return alert("json-input nicht gefunden.");
     
     // Create appropriate JSON structure based on type
     let jsonToDisplay;
@@ -1587,7 +1586,7 @@ async function loadSelectedIntoTextarea() {
       jsonToDisplay = jsonData;
     }
     
-    rdfInput.value = JSON.stringify(jsonToDisplay, null, 2);
+    jsonInput.value = JSON.stringify(jsonToDisplay, null, 2);
     
     if (typeof switchTemplate === "function") {
       const wantDozent = file.toLowerCase().includes("dozenten");
@@ -1628,7 +1627,7 @@ async function performAutoUpdateAfterSave(target) {
         const obj = await r2.json();
         
         // Setze die aktualisierte JSON in die Textarea
-        document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
+        document.getElementById('json-input').value = JSON.stringify(obj, null, 2);
         
         // 2. Formular aus Eingabe füllen (mit richtiger Funktion je nach aktuellem Template)
         if (window.currentTemplate === 'zuarbeit') {
@@ -1775,7 +1774,7 @@ async function determineTargetFromUIOrTextarea() {
   }
 
   // Fallback: parse textarea
-  const ta = document.getElementById('rdf-input');
+  const ta = document.getElementById('json-input');
   if (ta && ta.value.trim()) {
     try {
       const obj = JSON.parse(ta.value);
@@ -1958,9 +1957,9 @@ function renderApprovalStatusFromObject(parsed) {
   }
 }
 
-// liest die textarea ('rdf-input') und rendert
+// liest die textarea und rendert
 function renderApprovalStatusFromTextarea() {
-  const ta = document.getElementById('rdf-input');
+  const ta = document.getElementById('json-input');
   if (!ta) return;
   try {
     const parsed = JSON.parse(ta.value || '{}');
