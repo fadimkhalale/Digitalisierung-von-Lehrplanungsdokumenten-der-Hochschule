@@ -144,31 +144,26 @@ async function listJsonFilesWithIds() {
       const contentRaw = await fsPromises.readFile(path.join(DATA_DIR, f), 'utf8');
       const content = JSON.parse(contentRaw);
       let id = null;
-      // check common places for ID (top-level ID/id)
-      if (content && (content.id || content.ID)) id = content.id || content.ID;
-      // check singular 'dozent' (your example)
-      else if (content && content.dozent && (content.dozent.id || content.dozent.ID)) 
+      
+      // ID von der obersten Ebene lesen
+      if (content && (content.id || content.ID)) {
+        id = content.id || content.ID;
+      }
+      // Fallback für alte Struktur
+      else if (content && content.dozent && (content.dozent.id || content.dozent.ID)) {
         id = content.dozent.id || content.dozent.ID;
-      // check plural 'dozenten' array first entry
-     else if (content && content.dozenten && Array.isArray(content.dozenten) && content.dozenten.length > 0 && (content.dozenten[0].id || content.dozenten[0].ID)) {
-        id = content.dozenten[0].id || content.dozenten[0].ID;
       }
-      // check singular 'modul'
-      else if (content && content.modul && (content.modul.id || content.modul.ID)) 
+      else if (content && content.modul && (content.modul.id || content.modul.ID)) {
         id = content.modul.id || content.modul.ID;
-      // check plural 'module' array first entry
-      else if (content && content.module && Array.isArray(content.module) && content.module.length > 0 && (content.module[0].id || content.module[0].ID || content.module[0].modulnr)) {
-        id = content.module[0].id || content.module[0].ID || content.module[0].modulnr;
       }
+      
       // fallback: filename without extension
-       if (!id) id = path.basename(f, '.json');
+      if (!id) id = path.basename(f, '.json');
       results.push({ id: String(id), filename: f });
     } catch (err) {
-      // skip broken JSON but still include filename fallback id
       results.push({ id: path.basename(f, '.json'), filename: f, _error: 'invalid json' });
     }
   }
-  // sort by id for nicer UX
   results.sort((a,b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
   return results;
 }

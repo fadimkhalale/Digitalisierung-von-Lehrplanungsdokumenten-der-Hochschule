@@ -2,8 +2,8 @@ document
   .getElementById("example-dozentenblatt-btn")
   .addEventListener("click", () => {
     document.getElementById("rdf-input").value = JSON.stringify({
+      "id": "D12345",
       "dozent": {
-        "id": "D12345",
         "titel": "Prof. Dr.",
         "vorname": "Max",
         "nachname": "Mustermann",
@@ -416,6 +416,7 @@ function setupApprovalPermissions() {
     });
 }
 // Funktion zum Speichern der Dekan-Unterschrift
+// Funktion zum Speichern der Dekan-Unterschrift
 async function saveDekanSignature() {
   try {
     const userRole = await getUserRole();
@@ -534,16 +535,16 @@ function parseJSON() {
   try {
     const data = JSON.parse(jsonData);
     
-    // Check if it's dozent or modul data
+    // Check if it's dozent or modul data based on structure
     const isDozent = data.dozent !== undefined;
-    const jsonDataObj = isDozent ? data.dozent : data.modul;
+    const isModul = data.modul !== undefined;
 
-    if (window.currentTemplate === "zuarbeit" && !isDozent) {
-      // Für Zuarbeit: data.modul an fillZuarbeitsblatt übergeben
-      fillZuarbeitsblatt(data.modul || data);
+    if (window.currentTemplate === "zuarbeit" && isModul) {
+      // Für Zuarbeit: data an fillZuarbeitsblatt übergeben (nicht data.modul)
+      fillZuarbeitsblatt(data);
     } else if (window.currentTemplate === "dozent" && isDozent) {
-      // Für Dozenten: data.dozent an fillDozentenblatt übergeben
-      fillDozentenblatt(data.dozent || data);
+      // Für Dozenten: data an fillDozentenblatt übergeben (nicht data.dozent)
+      fillDozentenblatt(data);
     } else {
       alert("JSON-Daten passen nicht zum aktuellen Formulartyp!");
       return;
@@ -559,57 +560,62 @@ function parseJSON() {
 }
 
 function fillZuarbeitsblatt(data) {
+  // ID von der obersten Ebene lesen
   setFieldContent("zuarbeit-id", data.id || data.ID); 
-  setFieldContent("fakultaet", data.fakultaet);
-  setFieldContent("studiengang", data.studiengang);
-  setFieldContent("fs", data.fs);
-  setFieldContent("gruppen", data.gruppen);
-  setFieldContent("modulnr-name", `${data.modulnr} ${data.modulname}`);
-  setFieldContent("lehrveranstaltung", data.lehrveranstaltung);
-  setFieldContent("sws-v", data.swsVorlesung);
-  setFieldContent("sws-s", data.swsSeminar);
-  setFieldContent("sws-p", data.swsPraktikum);
-  setFieldContent("raumV", data.raumV);
-  setFieldContent("raumS", data.raumS);
-  setFieldContent("raumP", data.raumP);
-  setFieldContent("technikV", data.technikV);
-  setFieldContent("technikS", data.technikS);
-  setFieldContent("technikP", data.technikP);
-  setFieldContent("rueckgabedatum", data.rueckgabedatum);
-  setFieldContent("planungshinweise", data.planungshinweise);
+  
+  // Daten aus dem modul-Objekt lesen
+  const modulData = data.modul || {};
+  
+  setFieldContent("fakultaet", modulData.fakultaet);
+  setFieldContent("studiengang", modulData.studiengang);
+  setFieldContent("fs", modulData.fs);
+  setFieldContent("gruppen", modulData.gruppen);
+  setFieldContent("modulnr-name", `${modulData.modulnr} ${modulData.modulname}`);
+  setFieldContent("lehrveranstaltung", modulData.lehrveranstaltung);
+  setFieldContent("sws-v", modulData.swsVorlesung);
+  setFieldContent("sws-s", modulData.swsSeminar);
+  setFieldContent("sws-p", modulData.swsPraktikum);
+  setFieldContent("raumV", modulData.raumV);
+  setFieldContent("raumS", modulData.raumS);
+  setFieldContent("raumP", modulData.raumP);
+  setFieldContent("technikV", modulData.technikV);
+  setFieldContent("technikS", modulData.technikS);
+  setFieldContent("technikP", modulData.technikP);
+  setFieldContent("rueckgabedatum", modulData.rueckgabedatum);
+  setFieldContent("planungshinweise", modulData.planungshinweise);
   
   const signatureInput = document
     .getElementById("signature-name")
     ?.value?.trim();
-  setFieldContent("kw-name", signatureInput || data.unterschrift || data.name);
+  setFieldContent("kw-name", signatureInput || modulData.unterschrift || modulData.name);
   
   // Handle lesende, seminarleiter, praktikumsleiter
-  if (data.lesende) {
-    if (Array.isArray(data.lesende)) {
-      fillPersonTable("lesende-table", data.lesende);
+  if (modulData.lesende) {
+    if (Array.isArray(modulData.lesende)) {
+      fillPersonTable("lesende-table", modulData.lesende);
     } else {
-      fillPersonTable("lesende-table", [data.lesende]);
+      fillPersonTable("lesende-table", [modulData.lesende]);
     }
   }
   
-  if (data.seminarleiter) {
-    if (Array.isArray(data.seminarleiter)) {
-      fillPersonTable("seminarleiter-table", data.seminarleiter);
+  if (modulData.seminarleiter) {
+    if (Array.isArray(modulData.seminarleiter)) {
+      fillPersonTable("seminarleiter-table", modulData.seminarleiter);
     } else {
-      fillPersonTable("seminarleiter-table", [data.seminarleiter]);
+      fillPersonTable("seminarleiter-table", [modulData.seminarleiter]);
     }
   }
   
-  if (data.praktikumsleiter) {
-    if (Array.isArray(data.praktikumsleiter)) {
-      fillPersonTable("praktikumsleiter-table", data.praktikumsleiter);
+  if (modulData.praktikumsleiter) {
+    if (Array.isArray(modulData.praktikumsleiter)) {
+      fillPersonTable("praktikumsleiter-table", modulData.praktikumsleiter);
     } else {
-      fillPersonTable("praktikumsleiter-table", [data.praktikumsleiter]);
+      fillPersonTable("praktikumsleiter-table", [modulData.praktikumsleiter]);
     }
   }
   
-  if (data.planungshinweise) {
-    const hints = data.planungshinweise.toLowerCase();
+  if (modulData.planungshinweise) {
+    const hints = modulData.planungshinweise.toLowerCase();
     setCheckbox("planung1", hints.includes("gleichmäßige"));
     setCheckbox("planung2", hints.includes("vorlesungen in der einen"));
     setCheckbox("planung3", hints.includes("blockplanung"));
@@ -617,71 +623,76 @@ function fillZuarbeitsblatt(data) {
     setCheckbox("planung5", hints.includes("vorlesung zwingend"));
   }
   
-  if (data.kwHinweise) {
+  if (modulData.kwHinweise) {
     const kwInputs = document.querySelectorAll(".kw-grid .form-input");
-    const kwList = data.kwHinweise.split(",");
+    const kwList = modulData.kwHinweise.split(",");
     kwList.forEach((kw) => {
       const kwNum = kw.trim().replace("KW", "").replace(".", "");
       const input = Array.from(kwInputs).find((i) =>
         i.previousSibling.textContent.trim().startsWith(kwNum)
       );
       if (input) {
-        input.textContent = data.name || "X";
+        input.textContent = modulData.name || "X";
       }
     });
   }
   
-   document.querySelectorAll(".signature-box").forEach((box) => {
+  document.querySelectorAll(".signature-box").forEach((box) => {
     if (box.textContent.includes("Professor/in")) {
       box.innerHTML = `Datum: ${
-        data.datumUnterschrift || ""
+        modulData.datumUnterschrift || ""
       }<br>Unterschrift: ${
-        data.profUnterschrift || ""
+        modulData.profUnterschrift || ""
       }<br>Verantwortliche/r Professor/in`;
     } else if (box.textContent.includes("Dekan/in")) {
       box.innerHTML = `Datum: ${
-        data.datumUnterschrift || ""
+        modulData.datumUnterschrift || ""
       }<br>Unterschrift: ${
-        data.dekanUnterschrift || "" 
+        modulData.dekanUnterschrift || "" 
       }<br>Dekan/in der Fakultät`;
     }
   });
 }
 
 function fillDozentenblatt(data) {
+  // ID von der obersten Ebene lesen
   setFieldContent("dozent-id", data.id || data.ID);
-  setFieldContent("dozent-id-anlage", data.id || data.ID)
-  setFieldContent("titel", data.titel);
-  setFieldContent("vorname", data.vorname);
-  setFieldContent("nachname", data.nachname);
-  setFieldContent("email", data.email);
-  setFieldContent("telefon", data.telefon);
-  setFieldContent("hinweise", data.hinweise);
-  setFieldContent("dozent-hinweise", data.hinweise || data.dozentHinweise);
-  setFieldContent("dekanat-hinweise", data.dekanatHinweise);
+  setFieldContent("dozent-id-anlage", data.id || data.ID);
   
-  if (data.fakultaet) {
+  // Daten aus dem dozent-Objekt lesen
+  const dozentData = data.dozent || {};
+  
+  setFieldContent("titel", dozentData.titel);
+  setFieldContent("vorname", dozentData.vorname);
+  setFieldContent("nachname", dozentData.nachname);
+  setFieldContent("email", dozentData.email);
+  setFieldContent("telefon", dozentData.telefon);
+  setFieldContent("hinweise", dozentData.hinweise);
+  setFieldContent("dozent-hinweise", dozentData.hinweise || dozentData.dozentHinweise);
+  setFieldContent("dekanat-hinweise", dozentData.dekanatHinweise);
+  
+  if (dozentData.fakultaet) {
     const checkbox = document.querySelector(
-      `#fakultaet-group input[value="${data.fakultaet}"]`
+      `#fakultaet-group input[value="${dozentData.fakultaet}"]`
     );
     if (checkbox) checkbox.checked = true;
   }
   
-  if (data.arbeitszeit) {
-    const isFulltime = data.arbeitszeit.toLowerCase().includes("vollzeit");
+  if (dozentData.arbeitszeit) {
+    const isFulltime = dozentData.arbeitszeit.toLowerCase().includes("vollzeit");
     document.getElementById(
       isFulltime ? "fulltime" : "parttime"
     ).checked = true;
 
-    if (isFulltime && data.vollzeitInput) {
-      setFieldContent("vollzeit-input", data.vollzeitInput);
+    if (isFulltime && dozentData.vollzeitInput) {
+      setFieldContent("vollzeit-input", dozentData.vollzeitInput);
     }
   }
   
   const lvTable = document.querySelector("#lehrveranstaltungen tbody");
-  if (lvTable && data.lehrveranstaltung) {
+  if (lvTable && dozentData.lehrveranstaltung) {
     lvTable.innerHTML = "";
-    data.lehrveranstaltung.forEach((lv, index) => {
+    dozentData.lehrveranstaltung.forEach((lv, index) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${index + 1}</td>
@@ -701,14 +712,14 @@ function fillDozentenblatt(data) {
     });
   }
   
-  setFieldContent("anlage-titel", data.titel);
-  setFieldContent("anlage-vorname", data.vorname);
-  setFieldContent("anlage-nachname", data.nachname);
+  setFieldContent("anlage-titel", dozentData.titel);
+  setFieldContent("anlage-vorname", dozentData.vorname);
+  setFieldContent("anlage-nachname", dozentData.nachname);
   
   const einsatzzeitenTable = document.querySelector("#einsatzzeiten tbody");
-  if (einsatzzeitenTable && data.einsatzzeit) {
+  if (einsatzzeitenTable && dozentData.einsatzzeit) {
     einsatzzeitenTable.innerHTML = "";
-    data.einsatzzeit.forEach((einsatz) => {
+    dozentData.einsatzzeit.forEach((einsatz) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${einsatz.wochen || ""}</td>
@@ -721,9 +732,9 @@ function fillDozentenblatt(data) {
   }
   
   const sperrzeitenTable = document.querySelector("#sperrzeiten tbody");
-  if (sperrzeitenTable && data.sperrzeit) {
+  if (sperrzeitenTable && dozentData.sperrzeit) {
     sperrzeitenTable.innerHTML = "";
-    data.sperrzeit.forEach((sperre) => {
+    dozentData.sperrzeit.forEach((sperre) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${sperre.wochen || ""}</td>
@@ -735,7 +746,7 @@ function fillDozentenblatt(data) {
     });
   }
   
-  if (data.dozententag || data.forschungstag) {
+  if (dozentData.dozententag || dozentData.forschungstag) {
     document
       .querySelectorAll('.time-table input[type="checkbox"]')
       .forEach((cb) => {
@@ -749,38 +760,38 @@ function fillDozentenblatt(data) {
       const cells = checkboxContainer.querySelectorAll("td");
       cells.forEach((cell) => {
         const day = cell.textContent.trim().toLowerCase();
-        if (data.dozententag && day === data.dozententag.toLowerCase()) {
+        if (dozentData.dozententag && day === dozentData.dozententag.toLowerCase()) {
           const checkbox = cell.querySelector('input[value="D"]');
           if (checkbox) checkbox.checked = true;
         }
-        if (data.forschungstag && day === data.forschungstag.toLowerCase()) {
+        if (dozentData.forschungstag && day === dozentData.forschungstag.toLowerCase()) {
           const checkbox = cell.querySelector('input[value="F"]');
           if (checkbox) checkbox.checked = true;
         }
       });
     }
 
-    if (data.ausnahmeTag) {
+    if (dozentData.ausnahmeTag) {
       const ausnahmeField = document.querySelector(
         ".time-table tbody tr:last-child td span.form-input"
       );
-      if (ausnahmeField) ausnahmeField.textContent = data.ausnahmeTag;
+      if (ausnahmeField) ausnahmeField.textContent = dozentData.ausnahmeTag;
     }
   }
   
   // Setze Unterschrift in den Signatur-Boxen
-   document.querySelectorAll(".signature-box").forEach((box) => {
+  document.querySelectorAll(".signature-box").forEach((box) => {
     if (box.textContent.includes("Professor/in")) {
       box.innerHTML = `Datum: ${
-        data.datumUnterschrift || ""
+        dozentData.datumUnterschrift || ""
       }<br>Unterschrift: ${
-        data.profUnterschrift || ""
+        dozentData.profUnterschrift || ""
       }<br>Verantwortliche/r Professor/in`;
     } else if (box.textContent.includes("Dekan/in")) {
       box.innerHTML = `Datum: ${
-        data.datumUnterschrift || ""
+        dozentData.datumUnterschrift || ""
       }<br>Unterschrift: ${
-        data.dekanUnterschrift || "" 
+        dozentData.dekanUnterschrift || "" 
       }<br>Dekan/in der Fakultät`;
     }
   });
@@ -1347,8 +1358,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (exampleBtn) {
     exampleBtn.addEventListener("click", () => {
       document.getElementById("rdf-input").value = JSON.stringify({
+        "id": "Z12345",
         "modul": {
-          "id": "Z12345",
           "fakultaet": "FIM",
           "studiengang": "BIB",
           "fs": "3",
@@ -1619,11 +1630,32 @@ async function performAutoUpdateAfterSave(target) {
         // Setze die aktualisierte JSON in die Textarea
         document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
         
-        // 2. Formular aus Eingabe füllen (mit richtiger Funktion je nach Template)
+        // 2. Formular aus Eingabe füllen (mit richtiger Funktion je nach aktuellem Template)
         if (window.currentTemplate === 'zuarbeit') {
-          fillZuarbeitsblatt(obj.modul || obj);
+          // Für Zuarbeitsblatt: verwende fillZuarbeitsblatt
+          if (typeof fillZuarbeitsblatt === 'function') {
+            fillZuarbeitsblatt(obj);
+          }
         } else if (window.currentTemplate === 'dozent') {
-          fillDozentenblatt(obj.dozent || obj);
+          // Für Dozentenblatt: verwende fillDozentenblatt
+          if (typeof fillDozentenblatt === 'function') {
+            fillDozentenblatt(obj);
+          }
+        } else {
+          // Fallback: automatisch erkennen basierend auf JSON-Struktur
+          if (obj.modul && typeof fillZuarbeitsblatt === 'function') {
+            fillZuarbeitsblatt(obj);
+            // Setze Template auf Zuarbeit falls nicht bereits gesetzt
+            if (window.currentTemplate !== 'zuarbeit' && typeof switchTemplate === 'function') {
+              setTimeout(() => switchTemplate(), 100);
+            }
+          } else if (obj.dozent && typeof fillDozentenblatt === 'function') {
+            fillDozentenblatt(obj);
+            // Setze Template auf Dozent falls nicht bereits gesetzt
+            if (window.currentTemplate !== 'dozent' && typeof switchTemplate === 'function') {
+              setTimeout(() => switchTemplate(), 100);
+            }
+          }
         }
         
         // Approval Status aktualisieren
@@ -1642,12 +1674,14 @@ async function performAutoUpdateAfterSave(target) {
         
         if (foundItem) {
           // Simuliere Klick auf den entsprechenden "Auswahl in Eingabe übernehmen" Button
-          if (target.type === 'zuarbeit') {
+          if (target.type === 'zuarbeit' || (!target.type && window.currentTemplate === 'zuarbeit')) {
             document.getElementById('saved-zuarbeit').value = foundItem.filename;
-            document.getElementById('load-zuarbeit-btn').click();
-          } else if (target.type === 'dozenten') {
+            // Führe das Laden aus und warte darauf
+            await simulateLoadButtonClick('load-zuarbeit-btn');
+          } else if (target.type === 'dozenten' || (!target.type && window.currentTemplate === 'dozent')) {
             document.getElementById('saved-dozenten').value = foundItem.filename;
-            document.getElementById('load-dozenten-btn').click();
+            // Führe das Laden aus und warte darauf
+            await simulateLoadButtonClick('load-dozenten-btn');
           }
         }
       }
@@ -1656,6 +1690,26 @@ async function performAutoUpdateAfterSave(target) {
     console.warn('Automatische Aktualisierung fehlgeschlagen:', error);
     // Kein Fehler anzeigen, da die Hauptfunktion bereits erfolgreich war
   }
+}
+
+// Hilfsfunktion zum Simulieren eines Button-Klicks und Warten auf Abschluss
+async function simulateLoadButtonClick(buttonId) {
+  return new Promise((resolve) => {
+    const button = document.getElementById(buttonId);
+    if (button) {
+      // Temporärer Event-Listener um zu wissen wann das Laden abgeschlossen ist
+      const originalOnClick = button.onclick;
+      button.onclick = async function(e) {
+        if (originalOnClick) await originalOnClick(e);
+        resolve();
+      };
+      button.click();
+      // Fallback: nach 2 Sekunden auflösen
+      setTimeout(resolve, 2000);
+    } else {
+      resolve();
+    }
+  });
 }
 
 // ----------------------
@@ -1725,11 +1779,12 @@ async function determineTargetFromUIOrTextarea() {
   if (ta && ta.value.trim()) {
     try {
       const obj = JSON.parse(ta.value);
-      if (obj && (obj.id || obj.ID)) return { filename: null, type: type, id: obj.id || obj.ID };
-      if (obj.dozent && (obj.dozent.id || obj.dozent.ID || obj.dozent.nachname)) 
-        return { filename: null, type: 'dozenten', id: obj.dozent.id || obj.dozent.ID || obj.dozent.nachname };
-      if (obj.modul && (obj.modul.id || obj.modul.ID || obj.modul.modulnr)) 
-        return { filename: null, type: 'zuarbeit', id: obj.modul.id || obj.modul.ID || obj.modul.modulnr };
+      // Prüfe die Struktur um den Typ zu bestimmen
+      if (obj.dozent) {
+        return { filename: null, type: 'dozenten', id: obj.id || obj.ID || (obj.dozent && (obj.dozent.id || obj.dozent.ID || obj.dozent.nachname)) };
+      } else if (obj.modul) {
+        return { filename: null, type: 'zuarbeit', id: obj.id || obj.ID || (obj.modul && (obj.modul.id || obj.modul.ID || obj.modul.modulnr)) };
+      }
     } catch (e) { /* ignore */ }
   }
 

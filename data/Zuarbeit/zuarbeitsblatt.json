@@ -1,6 +1,6 @@
 {
+  "id": "Z12345",
   "modul": {
-    "id": "Z12345",
     "fakultaet": "FIM",
     "studiengang": "BIB",
     "fs": "3",
@@ -53,6 +53,6 @@
     }
   },
   "approvals": {
-    "Dekan": "ja"
+    "Dekan": "nein"
   }
 }
