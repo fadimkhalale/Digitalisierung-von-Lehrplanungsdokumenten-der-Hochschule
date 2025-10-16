@@ -458,22 +458,8 @@ async function saveDekanSignature() {
 
     alert('Unterschrift wurde gespeichert.');
 
-    // Aktualisiere die Anzeige
-    if (target.filename) {
-      try {
-        const r2 = await fetch('/api/json-file/' + encodeURIComponent(target.filename));
-        if (r2.ok) {
-          const obj = await r2.json();
-          document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
-          // Formular neu füllen, um die Unterschrift anzuzeigen
-          if (window.currentTemplate === 'zuarbeit') {
-            fillZuarbeitsblatt(obj.modul || obj);
-          } else if (window.currentTemplate === 'dozent') {
-            fillDozentenblatt(obj.dozent || obj);
-          }
-        }
-      } catch (e) { /* ignore */ }
-    }
+    // AUTOMATISCHE AKTUALISIERUNG: Auswahl in Eingabe übernehmen + Formular füllen
+    await performAutoUpdateAfterSave(target);
 
   } catch (err) {
     console.error('saveDekanSignature error', err);
@@ -1611,7 +1597,66 @@ async function loadSelectedIntoTextarea() {
   }
 }
 
-
+// Neue Funktion für automatische Aktualisierung nach Speichern
+async function performAutoUpdateAfterSave(target) {
+  try {
+    // 1. Auswahl in Eingabe übernehmen
+    if (target.filename) {
+      // Lade die aktualisierte JSON-Datei vom Server
+      let fetchUrl;
+      if (target.type === 'zuarbeit') {
+        fetchUrl = `/api/json-file/zuarbeit/${encodeURIComponent(target.filename)}`;
+      } else if (target.type === 'dozenten') {
+        fetchUrl = `/api/json-file/dozenten/${encodeURIComponent(target.filename)}`;
+      } else {
+        fetchUrl = `/api/json-file/${encodeURIComponent(target.filename)}`;
+      }
+      
+      const r2 = await fetch(fetchUrl);
+      if (r2.ok) {
+        const obj = await r2.json();
+        
+        // Setze die aktualisierte JSON in die Textarea
+        document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
+        
+        // 2. Formular aus Eingabe füllen (mit richtiger Funktion je nach Template)
+        if (window.currentTemplate === 'zuarbeit') {
+          fillZuarbeitsblatt(obj.modul || obj);
+        } else if (window.currentTemplate === 'dozent') {
+          fillDozentenblatt(obj.dozent || obj);
+        }
+        
+        // Approval Status aktualisieren
+        if (typeof renderApprovalStatusFromObject === 'function') {
+          renderApprovalStatusFromObject(obj);
+        }
+        
+        console.log('Automatische Aktualisierung erfolgreich durchgeführt');
+      }
+    } else if (target.id) {
+      // Falls nur ID vorhanden ist, versuche die Datei zu finden und zu laden
+      const listResponse = await fetch(`/api/json-list/${target.type || 'all'}`);
+      if (listResponse.ok) {
+        const list = await listResponse.json();
+        const foundItem = list.find(item => item.id === target.id);
+        
+        if (foundItem) {
+          // Simuliere Klick auf den entsprechenden "Auswahl in Eingabe übernehmen" Button
+          if (target.type === 'zuarbeit') {
+            document.getElementById('saved-zuarbeit').value = foundItem.filename;
+            document.getElementById('load-zuarbeit-btn').click();
+          } else if (target.type === 'dozenten') {
+            document.getElementById('saved-dozenten').value = foundItem.filename;
+            document.getElementById('load-dozenten-btn').click();
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Automatische Aktualisierung fehlgeschlagen:', error);
+    // Kein Fehler anzeigen, da die Hauptfunktion bereits erfolgreich war
+  }
+}
 
 // ----------------------
 // Speichere Genehmigungsstatus: Sende den Zustand der Checkboxen an den Server und aktualisiere das JSON/Statusfeld
@@ -1627,18 +1672,25 @@ async function determineTargetFromUIOrTextarea() {
   let selectedFilename = null;
   let typed = null;
 
+  // Priorität: Zuerst Auswahl in den Dropdowns prüfen
   if (selDoz && selDoz.value) {
     type = 'dozenten';
     selectedFilename = selDoz.value;
   } else if (selZu && selZu.value) {
     type = 'zuarbeit';
     selectedFilename = selZu.value;
-  } else if (inputDoz && inputDoz.value.trim()) {
+  } 
+  // Dann Eingabefelder prüfen
+  else if (inputDoz && inputDoz.value.trim()) {
     type = 'dozenten';
     typed = inputDoz.value.trim();
   } else if (inputZu && inputZu.value.trim()) {
     type = 'zuarbeit';
     typed = inputZu.value.trim();
+  }
+  // Fallback: Aktuelles Template verwenden
+  else {
+    type = window.currentTemplate === 'dozent' ? 'dozenten' : 'zuarbeit';
   }
 
   if (selectedFilename) {
@@ -1673,15 +1725,15 @@ async function determineTargetFromUIOrTextarea() {
   if (ta && ta.value.trim()) {
     try {
       const obj = JSON.parse(ta.value);
-      if (obj && (obj.id || obj.ID)) return { filename: null, type: null, id: obj.id || obj.ID };
-if (obj.dozent && (obj.dozent.id || obj.dozent.ID || obj.dozent.nachname)) 
-  return { filename: null, type: 'dozenten', id: obj.dozent.id || obj.dozent.ID || obj.dozent.nachname };
-if (obj.modul && (obj.modul.id || obj.modul.ID || obj.modul.modulnr)) 
-  return { filename: null, type: 'zuarbeit', id: obj.modul.id || obj.modul.ID || obj.modul.modulnr };
+      if (obj && (obj.id || obj.ID)) return { filename: null, type: type, id: obj.id || obj.ID };
+      if (obj.dozent && (obj.dozent.id || obj.dozent.ID || obj.dozent.nachname)) 
+        return { filename: null, type: 'dozenten', id: obj.dozent.id || obj.dozent.ID || obj.dozent.nachname };
+      if (obj.modul && (obj.modul.id || obj.modul.ID || obj.modul.modulnr)) 
+        return { filename: null, type: 'zuarbeit', id: obj.modul.id || obj.modul.ID || obj.modul.modulnr };
     } catch (e) { /* ignore */ }
   }
 
-  return { filename: null, type: null, id: null };
+  return { filename: null, type: type, id: null };
 }
 
 
@@ -1716,7 +1768,6 @@ async function saveApprovalToServer() {
       [userRole]: userCheckbox.checked ? 'ja' : 'nein'
     };
 
-    
     // Bestimme Ziel MIT Typ-Information
     let target = await determineTargetFromUIOrTextarea();
 
@@ -1724,7 +1775,7 @@ async function saveApprovalToServer() {
     const payload = { 
       filename: target.filename, 
       id: target.id, 
-      type: target.type,  // Neue: 'zuarbeit' oder 'dozenten'
+      type: target.type,
       approvals 
     };
 
@@ -1745,17 +1796,8 @@ async function saveApprovalToServer() {
 
     alert(`Freigabe als ${userRole} wurde gespeichert.`);
 
-    // Status aktualisieren
-    if (target.filename) {
-      try {
-        const r2 = await fetch('/api/json-file/' + encodeURIComponent(target.filename));
-        if (r2.ok) {
-          const obj = await r2.json();
-          renderApprovalStatusFromObject(obj);
-          document.getElementById('rdf-input').value = JSON.stringify(obj, null, 2);
-        }
-      } catch (e) { /* ignore */ }
-    }
+    // AUTOMATISCHE AKTUALISIERUNG: Auswahl in Eingabe übernehmen + Formular füllen
+    await performAutoUpdateAfterSave(target);
 
   } catch (err) {
     console.error('saveApprovalToServer error', err);
