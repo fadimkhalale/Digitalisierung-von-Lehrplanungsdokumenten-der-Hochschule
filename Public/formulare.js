@@ -745,38 +745,45 @@ function fillDozentenblatt(data) {
     });
   }
   
-  if (dozentData.dozententag || dozentData.forschungstag) {
-    document
-      .querySelectorAll('.time-table input[type="checkbox"]')
-      .forEach((cb) => {
-        cb.checked = false;
-      });
 
-    const checkboxContainer = document.querySelector(
-      ".time-table tbody tr:first-child"
-    );
-    if (checkboxContainer) {
-      const cells = checkboxContainer.querySelectorAll("td");
-      cells.forEach((cell) => {
-        const day = cell.textContent.trim().toLowerCase();
-        if (dozentData.dozententag && day === dozentData.dozententag.toLowerCase()) {
-          const checkbox = cell.querySelector('input[value="D"]');
-          if (checkbox) checkbox.checked = true;
-        }
-        if (dozentData.forschungstag && day === dozentData.forschungstag.toLowerCase()) {
-          const checkbox = cell.querySelector('input[value="F"]');
-          if (checkbox) checkbox.checked = true;
-        }
-      });
-    }
+if (dozentData.dozententag || dozentData.forschungstag) {
+  // Alle Checkboxen zurücksetzen
+  document.querySelectorAll('.time-table input[type="checkbox"]').forEach((cb) => {
+    cb.checked = false;
+  });
 
-    if (dozentData.ausnahmeTag) {
-      const ausnahmeField = document.querySelector(
-        ".time-table tbody tr:last-child td span.form-input"
-      );
-      if (ausnahmeField) ausnahmeField.textContent = dozentData.ausnahmeTag;
+  // Mapping von Wochentagen zu Spaltenindizes
+  const dayMapping = {
+    'montag': 2, 'dienstag': 3, 'mittwoch': 4, 
+    'donnerstag': 5, 'freitag': 6
+  };
+
+  // Dozententag setzen
+  if (dozentData.dozententag) {
+    const dayIndex = dayMapping[dozentData.dozententag.toLowerCase()];
+    if (dayIndex) {
+      const cell = document.querySelector(`.time-table tbody tr:first-child td:nth-child(${dayIndex})`);
+      const dCheckbox = cell ? cell.querySelector('input[type="checkbox"]') : null;
+      if (dCheckbox) dCheckbox.checked = true;
     }
   }
+
+  // Forschungstag setzen
+  if (dozentData.forschungstag) {
+    const dayIndex = dayMapping[dozentData.forschungstag.toLowerCase()];
+    if (dayIndex) {
+      const cell = document.querySelector(`.time-table tbody tr:first-child td:nth-child(${dayIndex})`);
+      const checkboxes = cell ? cell.querySelectorAll('input[type="checkbox"]') : [];
+      if (checkboxes.length > 1) checkboxes[1].checked = true;
+    }
+  }
+
+  // AusnahmeTag setzen
+  if (dozentData.ausnahmeTag) {
+    const ausnahmeField = document.querySelector(".time-table tbody tr:last-child td span.form-input");
+    if (ausnahmeField) ausnahmeField.textContent = dozentData.ausnahmeTag;
+  }
+}
   
   // Setze Unterschrift in den Signatur-Boxen
   document.querySelectorAll(".signature-box").forEach((box) => {
