@@ -17,7 +17,7 @@ document
         "profUnterschrift": "Prof. Dr. Mustermann",
         "dekanUnterschrift": "Prof. Dr. Schmidt",
         "datumUnterschrift": "15.05.2025",
-        "dozententag": "Mittwoch",
+        "dozententag": "Freitag",
         "forschungstag": "Donnerstag",
         "ausnahmeTag": "Freitag Nachmittag",
         "sperrzeit": [

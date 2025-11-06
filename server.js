@@ -1029,6 +1029,7 @@ async function backupDataFileInSubdir(subdir, filename) {
     return null;
   }
 }
+
     // start server
     app.listen(PORT, () => console.log(`Server läuft auf http://localhost:${PORT}`));
 
