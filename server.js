@@ -22,7 +22,7 @@ const CONFIG_PATH = path.join(__dirname, 'config.json');
 const BCRYPT_COST = 12;
 
 // Middlewares that are safe to apply immediately
-app.use(express.static('public'));
+app.use(express.static('Public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
