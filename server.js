@@ -369,46 +369,78 @@ app.post('/api/save-signature', requireAuth, async (req, res) => {
   }
 });
 
-    // GET / - Root-Route zur Login-Umleitung
+  // GET / - Root-Route zur Login-Umleitung
     app.get('/', (req, res) => {
       res.redirect('/login.html');
     });
+   // GET /list - Gibt die Liste der PDFs zurück (angepasst für Docker)
+app.get('/list', requireAuth, (req, res) => {
+  // Versuche verschiedene mögliche Pfade
+  const possiblePaths = [
+    '/downloads', // Docker Volume
+    path.join(require('os').homedir(), 'Downloads'), // Host Downloads
+    path.join(__dirname, 'downloads'), // Lokaler downloads Ordner
+    '/home/node/Downloads' // Fallback im Container
+  ];
+  
+  let downloadsPath = null;
+  for (const testPath of possiblePaths) {
+    if (fs.existsSync(testPath)) {
+      downloadsPath = testPath;
+      break;
+    }
+  }
+  
+  if (!downloadsPath) {
+    // Erstelle downloads Ordner falls keiner existiert
+    downloadsPath = path.join(__dirname, 'downloads');
+    if (!fs.existsSync(downloadsPath)) {
+      fs.mkdirSync(downloadsPath, { recursive: true });
+    }
+  }
+  
+  console.log(`Using downloads path: ${downloadsPath}`);
+  
+  fs.readdir(downloadsPath, (err, files) => {
+    if (err) {
+      console.error('Fehler beim Lesen des Downloads-Ordners:', err);
+      return res.status(500).json([]);
+    }
 
-    // GET /list - Gibt die Liste der PDFs aus dem Downloads-Ordner zurück
-    app.get('/list', requireAuth, (req, res) => {
-      const downloadsPath = path.join(require('os').homedir(), 'Downloads');
-      
-      fs.readdir(downloadsPath, (err, files) => {
-        if (err) return res.status(500).send('Fehler beim Lesen der Dateien');
+    const pdfs = files
+      .filter(name => name.endsWith('.pdf'))
+      .map(name => {
+        const filePath = path.join(downloadsPath, name);
+        try {
+          const stat = fs.statSync(filePath);
+          const dozentenMatch = name.match(/Dozentenblatt_(.+)_(Wintersemester|Sommersemester)\d{4}/i);
+          const zuarbeitMatch = name.match(/Zuarbeitsblatt_(.+)_(Wintersemester|Sommersemester)\d{4}/i);
+          
+          let dozent = '', semester = '';
+          if (dozentenMatch) {
+            [, dozent, semester] = dozentenMatch;
+          } else if (zuarbeitMatch) {
+            [, dozent, semester] = zuarbeitMatch;
+          }
 
-        const pdfs = files
-          .filter(name => name.endsWith('.pdf'))
-          .map(name => {
-            const stat = fs.statSync(path.join(downloadsPath, name));
-            const dozentenMatch = name.match(/Dozentenblatt_(.+)_(Wintersemester|Sommersemester)\d{4}/i);
-            const zuarbeitMatch = name.match(/Zuarbeitsblatt_(.+)_(Wintersemester|Sommersemester)\d{4}/i);
-            
-            let dozent = '', semester = '';
-            if (dozentenMatch) {
-              [, dozent, semester] = dozentenMatch;
-            } else if (zuarbeitMatch) {
-              [, dozent, semester] = zuarbeitMatch;
-            }
+          return {
+            name,
+            path: filePath,
+            date: stat.mtime.toISOString().split('T')[0],
+            dozent,
+            semester,
+            type: dozentenMatch ? 'Dozentenblatt' : zuarbeitMatch ? 'Zuarbeitsblatt' : 'other'
+          };
+        } catch (statErr) {
+          console.error(`Fehler beim Lesen der Datei ${name}:`, statErr);
+          return null;
+        }
+      })
+      .filter(pdf => pdf !== null);
 
-            return {
-              name,
-              path: path.join(downloadsPath, name),
-              date: stat.mtime.toISOString().split('T')[0],
-              dozent,
-              semester,
-              type: dozentenMatch ? 'Dozentenblatt' : zuarbeitMatch ? 'Zuarbeitsblatt' : 'other'
-            };
-          });
-
-        res.json(pdfs);
-      });
-    });
-
+    res.json(pdfs);
+  });
+});
     // GET /view - Zeigt eine PDF-Datei an
     app.get('/view', requireAuth, (req, res) => {
       const filePath = req.query.path;
