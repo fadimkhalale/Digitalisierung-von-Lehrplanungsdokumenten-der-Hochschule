@@ -1,4 +1,4 @@
-# Digitalisierung von Lehrplanungsdokumenten — README
+# Digitalisierung von Lehrplanungsdokumenten 
 
 Kurz: Web-Anwendung zur digitalen Erfassung, Prüfung, Freigabe und PDF-Generierung der Formulare **Dozentenblatt** und **Zuarbeitsblatt** (Node.js + einfache Dateispeicherung / Download-Ordner; ausführlich beschrieben in Kapitel 5 der zugehörigen Bachelorarbeit). 
 
@@ -23,7 +23,7 @@ git clone https://github.com/fadimkhalale/Digitalisierung-von-Lehrplanungsdokume
 ## Voraussetzungen
 
 * Node.js (empfohlen: Node.js ≥ 14 bzw. 16)
-* npm oder yarn
+* npm
 * (Optional für Container) Podman installiert
 
 ---
@@ -72,19 +72,17 @@ podman run -p 3000:3000 ("-v /pfad/zum/DownloadOrdner") digitalisierung
 * `-v /host/pfad:/app/downloads` verbindet den Host-Downloadordner mit dem Container-Pfad, sodass generierte PDFs auf dem Host landen.
 * Bei SELinux ggf. `:Z` anhängen: `-v /host/pfad:/app/downloads:Z`.
 
-Perfekt — ich habe Kapitel 5 deiner Bachelorarbeit gelesen und daraus eine prägnante Projektbeschreibung formuliert, die du direkt in die `README.md` verwenden kannst. Ich habe die relevanten Stellen aus Kapitel 5 als Grundlage genommen. 
-
-# Projektbeschreibung (für README)
+# Projektbeschreibung 
 
 **Kurzbeschreibung**
 Dieses Projekt bietet eine Web-Anwendung zur vollständigen Digitalisierung des Prozesses rund um die Lehrplanungs-Formulare *Dozentenblatt* und *Zuarbeitsblatt*. Ziel ist, die bisher papierbasierten Abläufe zu ersetzen: Dateneingabe durch Lehrende, Prüf- und Freigabeworkflow durch Studienamt/Dekan, sowie die automatisierte Generierung druckfertiger PDF-Formulare. Die Implementierung umfasst mehrere Webseiten als Frontend und einen Node.js-Server als Backend. 
 
 **Kernfunktionen im Überblick**
 
-* **Login und Zugriffskontrolle:** Authentifizierte Benutzer (z. B. Dozenten, Studienamt, Dekanat, Admin) melden sich an — nur berechtigte Rollen sehen bzw. bearbeiten die jeweiligen Daten. 
+* **Login und Zugriffskontrolle:** Authentifizierte Benutzer (z. B. Dozenten, Studienamt, Dekanat, Admin) melden sich an, nur berechtigte Rollen sehen bzw. bearbeiten die jeweiligen Daten. 
 * **Generator (Hauptseite) mit JSON-Eingabe:** Auf der Hauptseite wählt der Nutzer Semester, Jahr und Planungswochen, lädt oder editiert JSON-Daten (Beispiel-JSONs sind verfügbar) und wählt dann eine Formularvorlage zur Vorschau und automatischen Befüllung aus. Gespeicherte Datensätze können per Liste oder Formular-ID geladen werden. 
 * **Prüf- und Freigabeworkflow:** Prüfungsamt und Dekanat können Einträge prüfen, mit Häkchen bestätigen und digital unterschreiben; die Übersicht dokumentiert, wer schon bestätigt hat. Wenn alle Stellen freigegeben haben, kann das finale PDF generiert und heruntergeladen werden. 
-* **PDF-Manager:** Alle erzeugten PDFs sind über einen separaten Manager einsehbar — filtern, anzeigen, umbenennen oder löschen. Die Umsetzung nutzt zunächst das lokale Dateisystem; das Backend bietet API-Endpunkte zur Auflistung und Anzeige der PDF-Dateien. 
+* **PDF-Manager:** Alle erzeugten PDFs sind über einen separaten Manager einsehbar filtern, anzeigen, umbenennen oder löschen. Die Umsetzung nutzt zunächst das lokale Dateisystem; das Backend bietet API-Endpunkte zur Auflistung und Anzeige der PDF-Dateien. 
 
 **Technische Entscheidungen & Umsetzung**
 
